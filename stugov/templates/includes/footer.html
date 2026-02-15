@@ -1,0 +1,124 @@
+{# ================================================================== #}
+{# SITE FOOTER                                                        #}
+{#                                                                     #}
+{# Included in base.html via {% include %}. Displays:                 #}
+{#   - Contact information from SiteSettings                          #}
+{#   - Social media links from SiteSettings                           #}
+{#   - Copyright notice                                               #}
+{#                                                                     #}
+{# SiteSettings values are accessed via:                              #}
+{#   {{ settings.home.SiteSettings.field_name }}                      #}
+{# This works because of the wagtailsettings_tags loaded in base.html #}
+{# and the context processor in settings/base.py.                     #}
+{# ================================================================== #}
+
+{% load wagtailsettings_tags wagtailcore_tags %}
+
+<footer class="bg-stugov-dark text-gray-300 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            {# ---- Column 1: About ---- #}
+            <div>
+                <h3 class="text-white text-lg font-semibold mb-4">RPI Student Government</h3>
+                {% if settings.home.SiteSettings.office_location %}
+                <p class="text-sm mb-2">{{ settings.home.SiteSettings.office_location }}</p>
+                {% endif %}
+                {% if settings.home.SiteSettings.office_hours %}
+                <p class="text-sm mb-2">{{ settings.home.SiteSettings.office_hours }}</p>
+                {% endif %}
+                {% if settings.home.SiteSettings.contact_email %}
+                <p class="text-sm">
+                    <a href="mailto:{{ settings.home.SiteSettings.contact_email }}"
+                       class="hover:text-white transition-colors">
+                        {{ settings.home.SiteSettings.contact_email }}
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+
+            {# ---- Column 2: Quick links ---- #}
+            <div>
+                <h3 class="text-white text-lg font-semibold mb-4">Quick Links</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/events/" class="hover:text-white transition-colors">Events</a></li>
+                    <li><a href="/complaint-form/" class="hover:text-white transition-colors">Complaint Form</a></li>
+                    <li><a href="/the-record/" class="hover:text-white transition-colors">Records</a></li>
+                    <li><a href="/get-involved/" class="hover:text-white transition-colors">Get Involved</a></li>
+                    {% if settings.home.SiteSettings.box_archive_url %}
+                    <li>
+                        <a href="{{ settings.home.SiteSettings.box_archive_url }}"
+                           target="_blank" rel="noopener noreferrer"
+                           class="hover:text-white transition-colors">
+                            Document Archive (Box)
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            {# ---- Column 3: Social media ---- #}
+            <div>
+                <h3 class="text-white text-lg font-semibold mb-4">Connect</h3>
+                <div class="flex space-x-4">
+                    {% if settings.home.SiteSettings.instagram_url %}
+                    <a href="{{ settings.home.SiteSettings.instagram_url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       class="hover:text-white transition-colors"
+                       aria-label="Instagram">
+                        {# Instagram icon (SVG) #}
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    {% if settings.home.SiteSettings.discord_url %}
+                    <a href="{{ settings.home.SiteSettings.discord_url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       class="hover:text-white transition-colors"
+                       aria-label="Discord">
+                        {# Discord icon (SVG) #}
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    {% if settings.home.SiteSettings.twitter_url %}
+                    <a href="{{ settings.home.SiteSettings.twitter_url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       class="hover:text-white transition-colors"
+                       aria-label="Twitter/X">
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    {% if settings.home.SiteSettings.facebook_url %}
+                    <a href="{{ settings.home.SiteSettings.facebook_url }}"
+                       target="_blank" rel="noopener noreferrer"
+                       class="hover:text-white transition-colors"
+                       aria-label="Facebook">
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if settings.home.SiteSettings.footer_text %}
+                <div class="mt-4 text-sm">
+                    {{ settings.home.SiteSettings.footer_text|richtext }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ---- Copyright bar ---- #}
+        <div class="mt-8 pt-8 border-t border-gray-700 text-center text-sm text-gray-500">
+            <p>&copy; {% now "Y" %} Rensselaer Polytechnic Institute Student Government. All rights reserved.</p>
+        </div>
+    </div>
+</footer>

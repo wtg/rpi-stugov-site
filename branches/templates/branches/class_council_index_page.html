@@ -1,0 +1,46 @@
+{# ================================================================== #}
+{# CLASS COUNCIL INDEX PAGE — Lists all class councils for the UC     #}
+{#                                                                     #}
+{# 'councils' comes from ClassCouncilIndexPage.get_context() ordered  #}
+{# by class_year descending (newest class first).                     #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-classcouncilindexpage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <nav class="text-sm text-gray-500 mb-4">
+        <a href="{% pageurl page.get_parent %}" class="hover:text-rpi-red">{{ page.get_parent.title }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+    </nav>
+
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+
+    {% if page.intro %}
+    <div class="prose max-w-none mb-8">
+        {{ page.intro|richtext }}
+    </div>
+    {% endif %}
+
+    {% if councils %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for council in councils %}
+        <a href="{% pageurl council %}"
+           class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center
+                  hover:shadow-md hover:border-rpi-red transition-all">
+            <h2 class="text-2xl font-bold text-rpi-red">{{ council.title }}</h2>
+            {% if council.specific.class_year %}
+            <p class="text-gray-500 mt-1">Class of {{ council.specific.class_year }}</p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500">No class councils listed yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

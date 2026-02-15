@@ -1,0 +1,135 @@
+{# ================================================================== #}
+{# COMPLAINT FORM PAGE — Renders the dynamic form                      #}
+{#                                                                     #}
+{# Wagtail's AbstractEmailForm automatically provides:                 #}
+{#   - form: a Django form object with fields from the admin          #}
+{#   - page: the ComplaintFormPage instance                           #}
+{#                                                                     #}
+{# The form fields are dynamically generated based on what the admin  #}
+{# configured in the Wagtail admin. Each FormField entry becomes a    #}
+{# Django form field with validation.                                 #}
+{#                                                                     #}
+{# On POST, Wagtail handles validation, stores the submission,        #}
+{# sends the email notification, and renders the landing page         #}
+{# (complaint_form_page_landing.html) with thank_you_text.           #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-complaintformpage{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+
+    {% if page.intro %}
+    <div class="prose max-w-none mb-6">
+        {{ page.intro|richtext }}
+    </div>
+    {% endif %}
+
+    {# Privacy notice (important for complaint forms) #}
+    {% if page.privacy_notice %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start gap-3">
+            <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div class="prose prose-sm max-w-none text-blue-800">
+                {{ page.privacy_notice|richtext }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ---- The Form ---- #}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form action="{% pageurl page %}" method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            {# Render each form field with Tailwind styling #}
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ field.label }}
+                    {% if field.field.required %}
+                    <span class="text-rpi-red">*</span>
+                    {% endif %}
+                </label>
+
+                {% if field.help_text %}
+                <p class="text-xs text-gray-500 mb-1">{{ field.help_text }}</p>
+                {% endif %}
+
+                {# Apply Tailwind classes to the rendered widget #}
+                {# The |safe filter is needed because Django renders widgets as HTML #}
+                <div class="form-field">
+                    {{ field }}
+                </div>
+
+                {# Validation errors #}
+                {% if field.errors %}
+                <ul class="mt-1 text-sm text-red-600">
+                    {% for error in field.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <button type="submit"
+                    class="w-full px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
+                           hover:bg-rpi-red-dark transition-colors">
+                Submit
+            </button>
+        </form>
+    </div>
+</div>
+
+{# Style the dynamically generated form widgets with Tailwind #}
+{% block extra_css %}
+<style>
+    .form-field input[type="text"],
+    .form-field input[type="email"],
+    .form-field input[type="url"],
+    .form-field input[type="number"],
+    .form-field input[type="date"],
+    .form-field select,
+    .form-field textarea {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+        outline: none;
+        border-color: #d6001c;
+        box-shadow: 0 0 0 3px rgba(214, 0, 28, 0.1);
+    }
+    .form-field textarea {
+        min-height: 6rem;
+    }
+    /* Checkbox and radio styling */
+    .form-field input[type="checkbox"],
+    .form-field input[type="radio"] {
+        width: auto;
+        margin-right: 0.5rem;
+    }
+    .form-field ul {
+        list-style: none;
+        padding: 0;
+    }
+    .form-field ul li {
+        padding: 0.25rem 0;
+    }
+</style>
+{% endblock %}
+{% endblock %}

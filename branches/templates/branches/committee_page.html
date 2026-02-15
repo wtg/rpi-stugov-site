@@ -1,0 +1,64 @@
+{# ================================================================== #}
+{# COMMITTEE PAGE — Individual committee detail page                   #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-committeepage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {# Breadcrumb: Branch > Committees > This Committee #}
+    <nav class="text-sm text-gray-500 mb-4">
+        {% with committees_page=page.get_parent %}
+        {% with branch_page=committees_page.get_parent %}
+        <a href="{% pageurl branch_page %}" class="hover:text-rpi-red">{{ branch_page.title }}</a>
+        <span class="mx-2">/</span>
+        <a href="{% pageurl committees_page %}" class="hover:text-rpi-red">{{ committees_page.title }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+        {% endwith %}
+        {% endwith %}
+    </nav>
+
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+
+    {# ---- Meeting Info ---- #}
+    {% if page.meeting_time or page.meeting_location %}
+    <div class="bg-gray-50 rounded-lg p-4 mb-6 inline-flex gap-6">
+        {% if page.meeting_time %}
+        <div>
+            <span class="text-sm font-medium text-gray-500">Meets:</span>
+            <span class="text-sm text-gray-900 ml-1">{{ page.meeting_time }}</span>
+        </div>
+        {% endif %}
+        {% if page.meeting_location %}
+        <div>
+            <span class="text-sm font-medium text-gray-500">Location:</span>
+            <span class="text-sm text-gray-900 ml-1">{{ page.meeting_location }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ---- Description ---- #}
+    {% if page.description %}
+    <div class="prose prose-lg max-w-none mb-8">
+        {{ page.description|richtext }}
+    </div>
+    {% endif %}
+
+    {# ---- Committee Members ---- #}
+    {% if page.committee_members.all %}
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">Members</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for placement in page.committee_members.all %}
+            {% if placement.member.is_active %}
+                {% include "includes/member_card.html" with placement=placement %}
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

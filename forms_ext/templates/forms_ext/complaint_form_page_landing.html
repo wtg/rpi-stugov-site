@@ -1,0 +1,44 @@
+{# ================================================================== #}
+{# COMPLAINT FORM LANDING PAGE — Shown after successful submission     #}
+{#                                                                     #}
+{# Wagtail's AbstractEmailForm renders this template automatically    #}
+{# after a form is successfully submitted. The template name must     #}
+{# follow the pattern: {app}/{model}_landing.html                     #}
+{#                                                                     #}
+{# The page variable is still the ComplaintFormPage instance, so we   #}
+{# can access thank_you_text and other fields.                        #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-complaintformpage-landing{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+    {# Success icon #}
+    <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+        <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Submission Received</h1>
+
+    {% if page.thank_you_text %}
+    <div class="prose max-w-none mx-auto">
+        {{ page.thank_you_text|richtext }}
+    </div>
+    {% else %}
+    <p class="text-gray-600">Thank you for your submission. We have received your form.</p>
+    {% endif %}
+
+    <div class="mt-8">
+        <a href="/"
+           class="inline-block px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
+                  hover:bg-rpi-red-dark transition-colors">
+            Return to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

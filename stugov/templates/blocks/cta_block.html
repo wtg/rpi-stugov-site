@@ -1,0 +1,45 @@
+{# ================================================================== #}
+{# CTA BLOCK — Renders a call-to-action button/link                   #}
+{#                                                                     #}
+{# This template is referenced by CTABlock's Meta.template in         #}
+{# stugov/blocks.py. Wagtail automatically renders this template      #}
+{# when a CTA block appears in a StreamField.                         #}
+{#                                                                     #}
+{# The 'value' variable is the CTABlock's StructValue — a dict-like  #}
+{# object with keys matching the block's field names.                 #}
+{#                                                                     #}
+{# value.page takes precedence over value.url because internal links  #}
+{# are more reliable (they update automatically if the page moves).   #}
+{# ================================================================== #}
+
+{% load wagtailcore_tags %}
+
+{% if value.page %}
+    {% pageurl value.page as href %}
+{% elif value.url %}
+    {% with value.url as href %}
+    {% endwith %}
+{% endif %}
+
+{% if href %}
+<div class="my-4">
+    {% if value.style == "primary" %}
+    <a href="{{ href }}"
+       class="inline-block px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
+              hover:bg-rpi-red-dark transition-colors">
+        {{ value.text }}
+    </a>
+    {% elif value.style == "secondary" %}
+    <a href="{{ href }}"
+       class="inline-block px-6 py-3 border-2 border-rpi-red text-rpi-red font-medium rounded-lg
+              hover:bg-rpi-red hover:text-white transition-colors">
+        {{ value.text }}
+    </a>
+    {% else %}
+    <a href="{{ href }}"
+       class="text-rpi-red hover:text-rpi-red-dark font-medium underline transition-colors">
+        {{ value.text }}
+    </a>
+    {% endif %}
+</div>
+{% endif %}

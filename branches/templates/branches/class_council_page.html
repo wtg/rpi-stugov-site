@@ -1,0 +1,46 @@
+{# ================================================================== #}
+{# CLASS COUNCIL PAGE — Individual class council (e.g. Class of 2027) #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-classcouncilpage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {# Breadcrumb: UC > Class Councils > This Council #}
+    <nav class="text-sm text-gray-500 mb-4">
+        {% with index_page=page.get_parent %}
+        {% with branch_page=index_page.get_parent %}
+        <a href="{% pageurl branch_page %}" class="hover:text-rpi-red">{{ branch_page.title }}</a>
+        <span class="mx-2">/</span>
+        <a href="{% pageurl index_page %}" class="hover:text-rpi-red">{{ index_page.title }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+        {% endwith %}
+        {% endwith %}
+    </nav>
+
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ page.title }}</h1>
+    <p class="text-xl text-gray-600 mb-6">Class of {{ page.class_year }}</p>
+
+    {% if page.description %}
+    <div class="prose prose-lg max-w-none mb-8">
+        {{ page.description|richtext }}
+    </div>
+    {% endif %}
+
+    {# ---- Council Members ---- #}
+    {% if page.council_members.all %}
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">Council Members</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for placement in page.council_members.all %}
+            {% if placement.member.is_active %}
+                {% include "includes/member_card.html" with placement=placement %}
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

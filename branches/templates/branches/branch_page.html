@@ -1,0 +1,86 @@
+{# ================================================================== #}
+{# BRANCH PAGE — Landing page for a government branch                 #}
+{#                                                                     #}
+{# Displays the branch's tagline, body content, meeting schedule,     #}
+{# and links to child pages (member listing, committees, etc.).       #}
+{#                                                                     #}
+{# The child page links are built dynamically from the page tree      #}
+{# using page.get_children, so they update automatically when admins  #}
+{# add or remove sub-pages.                                           #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-branchpage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {# ---- Branch Header ---- #}
+    <header class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">{{ page.title }}</h1>
+        {% if page.tagline %}
+        <p class="text-xl text-gray-600 mt-2">{{ page.tagline }}</p>
+        {% endif %}
+    </header>
+
+    {# ---- Sub-page Navigation Cards ---- #}
+    {# These are the child pages (Meet the Senate, Committees, etc.)   #}
+    {# rendered as a horizontal card row for easy navigation.          #}
+    {% with children=page.get_children.live %}
+    {% if children %}
+    <nav class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for child in children %}
+        <a href="{% pageurl child %}"
+           class="bg-white rounded-lg shadow-sm border border-gray-200 p-5
+                  hover:shadow-md hover:border-rpi-red transition-all">
+            <h3 class="font-semibold text-gray-900">{{ child.title }}</h3>
+            {% if child.specific.intro %}
+            <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ child.specific.intro|striptags|truncatechars:80 }}</p>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {# ---- Main Body Content ---- #}
+        <div class="lg:col-span-2">
+            {% if page.body %}
+            <div class="prose prose-lg max-w-none">
+                {% for block in page.body %}
+                    {% if block.block_type == "heading" %}
+                        <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">{{ block.value }}</h2>
+                    {% else %}
+                        {% include_block block %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ---- Sidebar: Meeting Info & Contact ---- #}
+        <aside class="lg:col-span-1">
+            {% if page.meeting_schedule or page.contact_email %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% if page.meeting_schedule %}
+                <h3 class="font-semibold text-gray-900 mb-2">Meeting Schedule</h3>
+                <div class="text-sm text-gray-600 mb-4">
+                    {{ page.meeting_schedule|richtext }}
+                </div>
+                {% endif %}
+
+                {% if page.contact_email %}
+                <h3 class="font-semibold text-gray-900 mb-2">Contact</h3>
+                <a href="mailto:{{ page.contact_email }}"
+                   class="text-rpi-red hover:text-rpi-red-dark transition-colors text-sm">
+                    {{ page.contact_email }}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

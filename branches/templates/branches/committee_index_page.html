@@ -1,0 +1,51 @@
+{# ================================================================== #}
+{# COMMITTEE INDEX PAGE — Lists all committees for a branch           #}
+{#                                                                     #}
+{# 'committees' comes from CommitteeIndexPage.get_context() which     #}
+{# returns self.get_children().live().order_by("title").              #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-committeeindexpage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <nav class="text-sm text-gray-500 mb-4">
+        <a href="{% pageurl page.get_parent %}" class="hover:text-rpi-red">{{ page.get_parent.title }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+    </nav>
+
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+
+    {% if page.intro %}
+    <div class="prose max-w-none mb-8">
+        {{ page.intro|richtext }}
+    </div>
+    {% endif %}
+
+    {% if committees %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for committee in committees %}
+        <a href="{% pageurl committee %}"
+           class="bg-white rounded-lg shadow-sm border border-gray-200 p-6
+                  hover:shadow-md hover:border-rpi-red transition-all">
+            <h2 class="text-xl font-semibold text-gray-900">{{ committee.title }}</h2>
+            {% with specific=committee.specific %}
+            {% if specific.description %}
+            <p class="text-gray-600 mt-2 line-clamp-3">{{ specific.description|striptags|truncatechars:150 }}</p>
+            {% endif %}
+            {% if specific.meeting_time %}
+            <p class="text-sm text-gray-500 mt-3">{{ specific.meeting_time }}</p>
+            {% endif %}
+            {% endwith %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500">No committees listed yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

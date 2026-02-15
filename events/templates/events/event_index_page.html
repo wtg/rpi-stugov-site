@@ -1,0 +1,70 @@
+{# ================================================================== #}
+{# EVENT INDEX PAGE — Calendar and event listings                      #}
+{#                                                                     #}
+{# Displays:                                                          #}
+{#   1. A JavaScript calendar widget (monthly view)                   #}
+{#   2. Upcoming events list                                          #}
+{#   3. Past events (recent history)                                  #}
+{#                                                                     #}
+{# The calendar widget fetches events from the JSON API endpoint      #}
+{# at /events/api/events/?month=X&year=Y (provided by the            #}
+{# RoutablePageMixin on EventIndexPage).                              #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-eventindexpage{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+
+    {% if page.intro %}
+    <div class="prose max-w-none mb-8">
+        {{ page.intro|richtext }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {# ---- Calendar Widget (2/3 width) ---- #}
+        <div class="lg:col-span-2">
+            {% include "events/includes/calendar_widget.html" %}
+        </div>
+
+        {# ---- Event Listing Sidebar (1/3 width) ---- #}
+        <aside class="lg:col-span-1">
+            {# Upcoming Events #}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
+                {% if upcoming_events %}
+                <div class="space-y-4">
+                    {% for event in upcoming_events %}
+                        {% include "includes/event_card.html" with event=event %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm">No upcoming events scheduled.</p>
+                {% endif %}
+            </div>
+
+            {# Past Events #}
+            {% if past_events %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Recent Past Events</h2>
+                <div class="space-y-3">
+                    {% for event in past_events %}
+                    <div class="text-sm border-b border-gray-100 pb-2 last:border-0">
+                        <a href="{% pageurl event %}" class="font-medium text-gray-900 hover:text-rpi-red">
+                            {{ event.title }}
+                        </a>
+                        <p class="text-gray-500">{{ event.start_date|date:"M d, Y" }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{# ================================================================== #}
+{# EVENT CARD — Reusable partial for displaying an event listing item #}
+{#                                                                     #}
+{# Expected context variable:                                         #}
+{#   - event: an EventPage instance                                   #}
+{#                                                                     #}
+{# Usage:                                                             #}
+{#   {% include "includes/event_card.html" with event=e %}            #}
+{# ================================================================== #}
+
+{% load wagtailcore_tags %}
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div class="flex items-start gap-4">
+        {# Date badge — visual date indicator on the left #}
+        <div class="flex-shrink-0 text-center bg-rpi-red text-white rounded-lg p-2 min-w-[3.5rem]">
+            <div class="text-xs font-medium uppercase">
+                {# date filter format: "M" = abbreviated month (Jan, Feb, etc.) #}
+                {{ event.start_date|date:"M" }}
+            </div>
+            <div class="text-2xl font-bold leading-tight">
+                {{ event.start_date|date:"d" }}
+            </div>
+        </div>
+
+        {# Event details #}
+        <div class="flex-grow min-w-0">
+            <h3 class="font-semibold text-gray-900">
+                <a href="{% pageurl event %}" class="hover:text-rpi-red transition-colors">
+                    {{ event.title }}
+                </a>
+            </h3>
+
+            <div class="text-sm text-gray-600 mt-1 space-y-1">
+                {# Time #}
+                {% if event.start_time %}
+                <p>
+                    {{ event.start_time|time:"g:i A" }}
+                    {% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}
+                </p>
+                {% endif %}
+
+                {# Location #}
+                {% if event.location %}
+                <p>{{ event.location }}</p>
+                {% endif %}
+
+                {# Branch badge #}
+                {% if event.branch != "all" %}
+                <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full">
+                    {{ event.get_branch_display }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

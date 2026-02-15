@@ -1,0 +1,22 @@
+{# ================================================================== #}
+{# BOX EMBED BLOCK — Embeds a Box folder/file viewer via iframe       #}
+{#                                                                     #}
+{# Box shared links can be embedded by appending /embed_widget to the #}
+{# shared URL. This block wraps that in a responsive iframe.          #}
+{# ================================================================== #}
+
+<div class="my-6">
+    {% if value.caption %}
+    <p class="text-sm text-gray-600 mb-2">{{ value.caption }}</p>
+    {% endif %}
+
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <iframe src="{{ value.box_url }}"
+                width="100%"
+                height="{{ value.height }}px"
+                frameborder="0"
+                allowfullscreen
+                class="w-full">
+        </iframe>
+    </div>
+</div>

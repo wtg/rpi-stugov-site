@@ -1,0 +1,29 @@
+{# ================================================================== #}
+{# INFO CARD BLOCK — Single card in an info card grid                  #}
+{#                                                                     #}
+{# This renders ONE card. When used in a ListBlock (info_cards),      #}
+{# this template is called once per card in the list. The parent      #}
+{# template wraps the list in a grid container.                       #}
+{# ================================================================== #}
+
+{% load wagtailcore_tags %}
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    {% if value.title %}
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        {% if value.link %}
+        <a href="{{ value.link }}" class="hover:text-rpi-red transition-colors">{{ value.title }}</a>
+        {% elif value.link_page %}
+        <a href="{% pageurl value.link_page %}" class="hover:text-rpi-red transition-colors">{{ value.title }}</a>
+        {% else %}
+        {{ value.title }}
+        {% endif %}
+    </h3>
+    {% endif %}
+
+    {% if value.text %}
+    <div class="text-gray-600 text-sm prose prose-sm">
+        {{ value.text }}
+    </div>
+    {% endif %}
+</div>

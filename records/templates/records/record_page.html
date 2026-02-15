@@ -1,0 +1,100 @@
+{# ================================================================== #}
+{# RECORD PAGE — Individual record/document detail page                #}
+{#                                                                     #}
+{# Displays record metadata, body content, and attached documents     #}
+{# with version labels for download.                                  #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-recordpage{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {# Breadcrumb #}
+    <nav class="text-sm text-gray-500 mb-4">
+        <a href="{% pageurl page.get_parent %}" class="hover:text-rpi-red">{{ page.get_parent.title }}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+    </nav>
+
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ page.title }}</h1>
+
+    {# ---- Metadata Bar ---- #}
+    <div class="flex flex-wrap gap-3 items-center mb-6">
+        <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full font-medium">
+            {{ page.get_record_type_display }}
+        </span>
+        <span class="text-sm text-gray-500">{{ page.date_published|date:"F d, Y" }}</span>
+        {% if page.academic_year %}
+        <span class="text-sm text-gray-500">&middot; {{ page.academic_year }}</span>
+        {% endif %}
+        {% if page.branch != "general" %}
+        <span class="text-sm text-gray-500">&middot; {{ page.get_branch_display }}</span>
+        {% endif %}
+        {% if not page.is_public %}
+        <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
+            Internal Only
+        </span>
+        {% endif %}
+    </div>
+
+    {# ---- Summary ---- #}
+    {% if page.summary %}
+    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+        <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Summary</h2>
+        <div class="prose prose-sm max-w-none">
+            {{ page.summary|richtext }}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ---- Attached Documents ---- #}
+    {% if page.documents.all %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
+        <div class="space-y-3">
+            {% for doc in page.documents.all %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-3">
+                    {# File icon #}
+                    <svg class="h-8 w-8 text-rpi-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">{{ doc.document.title }}</p>
+                        {% if doc.version_label %}
+                        <p class="text-xs text-gray-500">{{ doc.version_label }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ doc.document.url }}"
+                   target="_blank" rel="noopener noreferrer"
+                   class="px-4 py-2 bg-rpi-red text-white text-sm rounded-lg
+                          hover:bg-rpi-red-dark transition-colors whitespace-nowrap">
+                    Download
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ---- Full Body Content ---- #}
+    {% if page.body %}
+    <div class="prose prose-lg max-w-none">
+        {{ page.body|richtext }}
+    </div>
+    {% endif %}
+
+    {# Back link #}
+    <div class="mt-8">
+        <a href="{% pageurl page.get_parent %}"
+           class="text-rpi-red hover:text-rpi-red-dark font-medium">
+            &larr; Back to Records
+        </a>
+    </div>
+</div>
+{% endblock %}

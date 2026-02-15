@@ -1,0 +1,31 @@
+{# ================================================================== #}
+{# DOCUMENT LIST BLOCK — Renders a list of downloadable documents     #}
+{#                                                                     #}
+{# value.heading: optional section heading                            #}
+{# value.documents: list of Wagtail Document objects                  #}
+{#                                                                     #}
+{# Each document has .url (download URL) and .title (filename/title). #}
+{# ================================================================== #}
+
+<div class="my-6">
+    {% if value.heading %}
+    <h3 class="text-lg font-semibold text-gray-900 mb-3">{{ value.heading }}</h3>
+    {% endif %}
+
+    <ul class="space-y-2">
+        {% for doc in value.documents %}
+        <li class="flex items-center gap-2">
+            {# Document icon #}
+            <svg class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <a href="{{ doc.url }}"
+               class="text-rpi-red hover:text-rpi-red-dark transition-colors"
+               target="_blank" rel="noopener noreferrer">
+                {{ doc.title }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>

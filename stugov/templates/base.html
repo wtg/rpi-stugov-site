@@ -1,0 +1,119 @@
+{# ================================================================== #}
+{# BASE TEMPLATE                                                      #}
+{#                                                                     #}
+{# Every page on the site extends this template. It provides:          #}
+{#   - HTML boilerplate (doctype, head, meta tags)                    #}
+{#   - Tailwind CSS (via CDN for development)                         #}
+{#   - The site navigation (via the {% main_navigation %} tag)        #}
+{#   - The site footer (via the {% include %} tag)                    #}
+{#   - Block points that child templates override                     #}
+{#                                                                     #}
+{# Template inheritance in Django/Wagtail:                            #}
+{#   - {% block name %}...{% endblock %} defines overridable regions  #}
+{#   - Child templates use {% extends "base.html" %} to inherit this  #}
+{#   - Children override specific blocks while keeping the rest       #}
+{#   - This means the nav/footer appear on EVERY page automatically  #}
+{# ================================================================== #}
+
+{% load static wagtailcore_tags wagtailuserbar navigation_tags wagtailsettings_tags %}
+
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+    <head>
+        <meta charset="utf-8" />
+        <title>
+            {% block title %}
+            {% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }}{% endif %}
+            {% endblock %}
+            {% block title_suffix %}
+            {% wagtail_site as current_site %}
+            {% if current_site and current_site.site_name %} - {{ current_site.site_name }}{% endif %}
+            {% endblock %}
+        </title>
+        {% if page.search_description %}
+        <meta name="description" content="{{ page.search_description }}" />
+        {% endif %}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {# Force all links in the live preview panel to be opened in a new tab #}
+        {% if request.in_preview_panel %}
+        <base target="_blank">
+        {% endif %}
+
+        {# ------------------------------------------------------------ #}
+        {# Tailwind CSS via CDN (development only)                       #}
+        {#                                                                #}
+        {# The CDN script processes Tailwind classes in the browser at    #}
+        {# runtime. This is convenient for development but should be      #}
+        {# replaced with a compiled CSS file for production.              #}
+        {#                                                                #}
+        {# For production, run:                                           #}
+        {#   npx tailwindcss -i ./stugov/static/css/input.css \           #}
+        {#     -o ./stugov/static/css/tailwind.css --minify               #}
+        {# Then replace this script tag with a <link> to that file.       #}
+        {# ------------------------------------------------------------ #}
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            // Configure Tailwind with RPI's brand colors and custom theme
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            // RPI's official red
+                            'rpi-red': '#d6001c',
+                            'rpi-red-dark': '#a50015',
+                            // Neutral tones for UI
+                            'stugov-dark': '#1a1a2e',
+                            'stugov-gray': '#4a4a68',
+                        }
+                    }
+                }
+            }
+        </script>
+
+        {# Site-specific CSS overrides (for anything Tailwind can't handle) #}
+        <link rel="stylesheet" type="text/css" href="{% static 'css/stugov.css' %}">
+
+        {% block extra_css %}
+        {% endblock %}
+    </head>
+
+    <body class="flex flex-col min-h-full bg-gray-50 text-gray-900 {% block body_class %}{% endblock %}">
+        {# Wagtail userbar: shows edit/admin links for logged-in editors #}
+        {% wagtailuserbar %}
+
+        {# ------------------------------------------------------------ #}
+        {# NAVIGATION                                                    #}
+        {#                                                                #}
+        {# The {% main_navigation %} tag (from navigation_tags.py)       #}
+        {# renders includes/navigation.html with the page tree data.     #}
+        {# ------------------------------------------------------------ #}
+        {% main_navigation %}
+
+        {# ------------------------------------------------------------ #}
+        {# MAIN CONTENT                                                  #}
+        {#                                                                #}
+        {# Every child template overrides this block to insert its       #}
+        {# page-specific content.                                        #}
+        {# ------------------------------------------------------------ #}
+        <main class="flex-grow">
+            {% block content %}{% endblock %}
+        </main>
+
+        {# ------------------------------------------------------------ #}
+        {# FOOTER                                                        #}
+        {#                                                                #}
+        {# Uses SiteSettings for social links, contact info, etc.        #}
+        {# The {% include %} tag inserts another template file inline.   #}
+        {# Unlike {% block %}, it can't be overridden by child templates #}
+        {# — the footer is always the same on every page.                #}
+        {# ------------------------------------------------------------ #}
+        {% include "includes/footer.html" %}
+
+        {# Global JavaScript #}
+        <script type="text/javascript" src="{% static 'js/stugov.js' %}"></script>
+
+        {% block extra_js %}
+        {% endblock %}
+    </body>
+</html>

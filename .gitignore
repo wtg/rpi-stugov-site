@@ -1,0 +1,14 @@
+.DS_Store
+.idea
+*.log
+tmp/
+
+*.py[cod]
+*.egg
+build
+htmlcov
+
+*.sqlite3
+.claude/
+
+Union-Digital-Infrastructure-Plan-1360e6813c44807fa1c5fece505d6344.html

@@ -1,0 +1,108 @@
+{# ================================================================== #}
+{# SITE NAVIGATION                                                    #}
+{#                                                                     #}
+{# Rendered by the {% main_navigation %} template tag from            #}
+{# home/templatetags/navigation_tags.py. This template receives:      #}
+{#   - nav_items: list of dicts, each with 'page' and 'children'     #}
+{#   - request: the current HTTP request                              #}
+{#                                                                     #}
+{# The nav uses a mobile-first approach:                              #}
+{#   - Mobile: hamburger button toggles a slide-down menu             #}
+{#   - Desktop (md+): horizontal bar with dropdown menus on hover     #}
+{#                                                                     #}
+{# How the mobile toggle works:                                       #}
+{#   - The hamburger button has onclick="toggleMobileMenu()"          #}
+{#   - This toggles the 'hidden' class on the menu container          #}
+{#   - No framework needed — just vanilla JS and Tailwind classes     #}
+{# ================================================================== #}
+
+{% load wagtailcore_tags %}
+
+<nav class="bg-stugov-dark text-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            {# ---- Site logo/title (always visible) ---- #}
+            <div class="flex-shrink-0">
+                <a href="/" class="text-xl font-bold hover:text-gray-300 transition-colors">
+                    RPI Student Government
+                </a>
+            </div>
+
+            {# ---- Desktop nav (hidden on mobile) ---- #}
+            {# "md:flex" means this is hidden below the md breakpoint (768px) #}
+            <div class="hidden md:flex md:items-center md:space-x-1">
+                {% for item in nav_items %}
+                <div class="relative group">
+                    {# Top-level nav item #}
+                    <a href="{% pageurl item.page %}"
+                       class="px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 transition-colors
+                              {% if request.path == item.page.url or request.path|slice:'1:' in item.page.url %}bg-white/10{% endif %}">
+                        {{ item.page.title }}
+                    </a>
+
+                    {# Dropdown menu (appears on hover via group-hover) #}
+                    {# "group" on the parent + "group-hover:block" on the child #}
+                    {# is a pure-CSS hover dropdown using Tailwind's group variant #}
+                    {% if item.children %}
+                    <div class="absolute left-0 mt-0 w-56 bg-white rounded-md shadow-lg
+                                opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                                transition-all duration-200 z-50">
+                        <div class="py-1">
+                            {% for child in item.children %}
+                            <a href="{% pageurl child %}"
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-rpi-red">
+                                {{ child.title }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            {# ---- Mobile hamburger button (hidden on desktop) ---- #}
+            <div class="md:hidden">
+                <button onclick="toggleMobileMenu()"
+                        class="inline-flex items-center justify-center p-2 rounded-md
+                               hover:bg-white/10 focus:outline-none"
+                        aria-label="Toggle navigation menu">
+                    {# Hamburger icon (three horizontal lines) #}
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Mobile menu (hidden by default, toggled by JS) ---- #}
+    <div id="mobile-menu" class="hidden md:hidden border-t border-white/20">
+        <div class="px-2 pt-2 pb-3 space-y-1">
+            {% for item in nav_items %}
+            <a href="{% pageurl item.page %}"
+               class="block px-3 py-2 rounded-md text-base font-medium hover:bg-white/10">
+                {{ item.page.title }}
+            </a>
+            {# Show child pages indented under their parent #}
+            {% for child in item.children %}
+            <a href="{% pageurl child %}"
+               class="block pl-8 pr-3 py-1 rounded-md text-sm text-gray-300 hover:bg-white/10 hover:text-white">
+                {{ child.title }}
+            </a>
+            {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Toggle mobile menu visibility.
+    // This is intentionally simple — just toggles the 'hidden' class.
+    // No need for Alpine.js or React for a single toggle.
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        menu.classList.toggle('hidden');
+    }
+</script>
