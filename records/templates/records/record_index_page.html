@@ -90,6 +90,16 @@
                         </span>
                         {# Date #}
                         <span class="text-sm text-gray-500">{{ record.date_published|date:"M d, Y" }}</span>
+                        {# Box badge — indicates the document is hosted on Box #}
+                        {% if record.box_url %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"
+                              title="This document is hosted on Box">
+                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M4.027 10.091l5.783 3.535-5.783 3.535L0 15.022l4.027-4.931zm15.946 0L24 15.022l-4.027 2.139-5.783-3.535 5.783-3.535zM9.81 6.692l5.783 3.535-5.783 3.535-5.783-3.535L9.81 6.692zm4.38 0l5.783 3.535-5.783 3.535-5.783-3.535L14.19 6.692z"/>
+                            </svg>
+                            Box
+                        </span>
+                        {% endif %}
                         {# Restricted badge #}
                         {% if not record.is_public %}
                         <span class="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">

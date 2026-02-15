@@ -1,8 +1,18 @@
 {# ================================================================== #}
 {# RECORD PAGE — Individual record/document detail page                #}
 {#                                                                     #}
-{# Displays record metadata, body content, and attached documents     #}
-{# with version labels for download.                                  #}
+{# Document display priority:                                        #}
+{#   1. Box embed (if box_url is set) — inline document viewer       #}
+{#   2. Wagtail attachments (if any) — download links                #}
+{#   3. Body text (if any) — rendered rich text                       #}
+{#                                                                     #}
+{# A record can use any combination of these. The template renders    #}
+{# all that are present, in the order above.                          #}
+{#                                                                     #}
+{# The Box embed uses an iframe pointing to Box's embed URL, which    #}
+{# renders Box's native document viewer (PDF preview, download button #}
+{# etc.). The page.box_embed_url property converts the shared link    #}
+{# to the embed format automatically.                                 #}
 {# ================================================================== #}
 
 {% extends "base.html" %}
@@ -50,15 +60,72 @@
     </div>
     {% endif %}
 
-    {# ---- Attached Documents ---- #}
-    {% if page.documents.all %}
+    {# ================================================================ #}
+    {# PRIORITY 1: Box Embedded Document Viewer                         #}
+    {#                                                                   #}
+    {# When a Box URL is configured, this is the primary way visitors   #}
+    {# interact with the document. Box's embedded viewer handles:       #}
+    {#   - PDF preview (scrollable, zoomable)                           #}
+    {#   - Office document preview (Word, Excel, PowerPoint)            #}
+    {#   - Download button (built into Box's viewer chrome)             #}
+    {#   - Version history (managed in Box, always up to date)          #}
+    {#                                                                   #}
+    {# The iframe src is page.box_embed_url, which converts the shared  #}
+    {# link (/s/...) to the embed format (/embed/s/...).               #}
+    {# ================================================================ #}
+    {% if page.has_box_document %}
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Document</h2>
+            <a href="{{ page.box_url }}"
+               target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-1.5 text-sm text-rpi-red hover:text-rpi-red-dark transition-colors">
+                Open in Box
+                {# External link icon #}
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+            </a>
+        </div>
+        <div class="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            <iframe src="{{ page.box_embed_url }}"
+                    width="100%"
+                    height="{{ page.box_embed_height }}"
+                    frameborder="0"
+                    allowfullscreen
+                    class="w-full"
+                    title="Document viewer for {{ page.title }}">
+            </iframe>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+            This document is hosted on Box. Use the controls in the viewer to download or zoom.
+        </p>
+    </div>
+    {% endif %}
+
+    {# ================================================================ #}
+    {# PRIORITY 2: Wagtail Attached Documents (fallback)                #}
+    {#                                                                   #}
+    {# Shown when there are direct file attachments. If a Box embed is  #}
+    {# also present, these appear below it as "Additional Files."       #}
+    {# If there's no Box embed, these are the primary document source.  #}
+    {# ================================================================ #}
+    {% if page.has_wagtail_documents %}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">
+            {% if page.has_box_document %}
+                {# If Box is present, these are supplementary #}
+                Additional Files
+            {% else %}
+                {# If no Box, these are the primary documents #}
+                Documents
+            {% endif %}
+        </h2>
         <div class="space-y-3">
             {% for doc in page.documents.all %}
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div class="flex items-center gap-3">
-                    {# File icon #}
                     <svg class="h-8 w-8 text-rpi-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -82,10 +149,22 @@
     </div>
     {% endif %}
 
-    {# ---- Full Body Content ---- #}
+    {# ================================================================ #}
+    {# PRIORITY 3: Full Body Content                                    #}
+    {#                                                                   #}
+    {# For records that are text content rather than a file (e.g., the  #}
+    {# full text of a resolution, or supplementary notes).              #}
+    {# ================================================================ #}
     {% if page.body %}
     <div class="prose prose-lg max-w-none">
         {{ page.body|richtext }}
+    </div>
+    {% endif %}
+
+    {# ---- Empty state ---- #}
+    {% if not page.has_box_document and not page.has_wagtail_documents and not page.body %}
+    <div class="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
+        <p>No document content has been added to this record yet.</p>
     </div>
     {% endif %}
 

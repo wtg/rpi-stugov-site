@@ -3,18 +3,29 @@ Models for the Records & Documents app.
 
 This app manages meeting minutes, the constitution, bylaws, resolutions,
 and other official documents. It supports:
+  - Box as the primary/single-source-of-truth for public documents
+  - Embedded Box viewer for inline document preview
+  - Fallback Wagtail document attachments for files not in Box
   - Categorization by type and academic year
-  - Multiple file attachments per record (for version history)
   - Basic access control (public vs. logged-in-only)
   - Filtering on the index page
 
 Key design decisions:
+  - Box is the Single Source of Truth for public records. This means
+    officers update documents in Box and the website automatically
+    reflects the latest version. This eliminates the "forgot to update
+    the website" problem that student government turnover causes.
+  - RecordPage has a box_url field that, when populated, renders an
+    embedded Box viewer on the page. The Box viewer handles previewing,
+    versioning, and downloading natively — no need to duplicate that
+    functionality in Wagtail.
+  - RecordDocument (Wagtail file attachments) is kept as a fallback
+    for documents that don't belong in Box — internal drafts, files
+    too sensitive for a shared Box folder, or records where Box isn't
+    practical. The template shows Box embed first, then falls back to
+    direct downloads.
   - RecordIndexPage can live under HomePage (for the site-wide "The Record"
-    section) OR under a BranchPage (for branch-specific records). This
-    avoids needing separate models for site-wide vs. branch records.
-  - RecordDocument is an Orderable attached to RecordPage, allowing
-    multiple file versions per record. This handles the infrastructure
-    plan's requirement for version history on the constitution and bylaws.
+    section) OR under a BranchPage (for branch-specific records).
   - The is_public field with a serve() override provides simple view-level
     access control without needing Wagtail's full group permissions system.
 """
@@ -124,21 +135,15 @@ class RecordIndexPage(Page):
 
 class RecordDocument(Orderable):
     """
-    An attached document file for a RecordPage.
+    An attached document file for a RecordPage (fallback when not using Box).
 
-    This is an Orderable (not a standalone model) because document
-    attachments only make sense in the context of a specific record.
-    Using Orderable + InlinePanel lets admins upload multiple files
-    per record and reorder them via drag-and-drop.
+    This is the secondary option — use it when a document doesn't belong
+    in Box (internal drafts, sensitive files, or one-off attachments).
+    For most public records, the Box embed on RecordPage is preferred
+    because Box handles versioning, previewing, and downloading natively.
 
-    The version_label field enables explicit version tracking:
-      - "v1.0 (Original)"
-      - "v1.1 (Amended March 2025)"
-      - "v2.0 (Rewritten January 2026)"
-
-    This is simpler than Wagtail's built-in page revision system
-    (which tracks every edit) because it gives editors control over
-    which versions are meaningful to publish.
+    Kept as an Orderable so multiple files can be attached to a single
+    record, with drag-and-drop reordering in the admin.
     """
 
     page = ParentalKey(
@@ -166,16 +171,26 @@ class RecordPage(Page):
     """
     An individual record/document (meeting minutes, constitution, etc.).
 
-    Each record has metadata (type, date, academic year, branch),
-    optional body text, and one or more attached document files.
+    Document sourcing strategy (in priority order):
+      1. Box embed (box_url) — the primary approach for public records.
+         When set, the page renders an embedded Box viewer that lets
+         visitors preview and download directly from Box. Box is the
+         Single Source of Truth: officers update documents in Box, and
+         the website automatically reflects the latest version.
+      2. Wagtail attachments (RecordDocument) — the fallback for files
+         not in Box. Used for internal drafts, sensitive files, or
+         records where Box embedding isn't practical.
+      3. Body text — for records that are pure text content rather than
+         a document file (e.g., a resolution's full text).
 
-    The is_public field provides simple access control:
-      - True (default): anyone can view
-      - False: only logged-in users can view (serve() redirects to login)
+    The template checks these in order: Box embed first, then Wagtail
+    attachments, then body text. A record can use any combination.
 
-    This is intentionally simple. For more granular permissions (e.g.
-    "only Senate members can see Senate budgets"), you'd use Wagtail's
-    group-based page permissions, but that's overkill for the initial launch.
+    Access control:
+      - is_public=True (default): anyone can view the record page.
+        Note: the Box document itself has its own sharing permissions
+        in Box — the is_public flag only controls the Wagtail page.
+      - is_public=False: only logged-in users can view (serve() redirects).
     """
 
     record_type = models.CharField(
@@ -209,6 +224,20 @@ class RecordPage(Page):
         help_text="Uncheck to restrict viewing to logged-in users only.",
     )
 
+    # -- Box integration (primary document source) --
+    box_url = models.URLField(
+        blank=True,
+        verbose_name="Box shared link",
+        help_text="Paste the Box shared link for this document. The page will "
+                  "show an embedded viewer so visitors can preview and download "
+                  "directly from Box. This is the preferred approach for public "
+                  "records — Box is the single source of truth.",
+    )
+    box_embed_height = models.PositiveIntegerField(
+        default=600,
+        help_text="Height in pixels for the embedded Box viewer.",
+    )
+
     content_panels = Page.content_panels + [
         MultiFieldPanel(
             [
@@ -220,12 +249,27 @@ class RecordPage(Page):
             heading="Record Metadata",
         ),
         FieldPanel("summary"),
-        FieldPanel("body"),
+        # -- Box embed is the PRIMARY document source, so it comes first --
+        # Editors see Box fields before Wagtail attachments, reinforcing
+        # that Box is the preferred approach.
+        MultiFieldPanel(
+            [
+                FieldPanel("box_url"),
+                FieldPanel("box_embed_height"),
+            ],
+            heading="Box Document (preferred)",
+            help_text="Paste a Box shared link to embed the document viewer. "
+                      "This is the recommended approach for public records. "
+                      "Box handles versioning and previewing automatically.",
+        ),
+        # -- Wagtail attachments are the FALLBACK, shown after Box --
         InlinePanel(
             "documents",
-            label="Attached Documents",
-            help_text="Upload document files. Add multiple entries for version history.",
+            label="Direct File Attachments (fallback)",
+            help_text="Only use this if the document is NOT in Box. For most "
+                      "public records, paste the Box link above instead.",
         ),
+        FieldPanel("body"),
         FieldPanel("is_public"),
     ]
 
@@ -241,6 +285,42 @@ class RecordPage(Page):
     parent_page_types = ["records.RecordIndexPage"]
     subpage_types = []
 
+    @property
+    def box_embed_url(self):
+        """
+        Convert a Box shared link to an embeddable URL.
+
+        Box shared links look like:
+            https://rpi.box.com/s/abc123xyz
+        The embeddable version is:
+            https://rpi.box.com/embed/s/abc123xyz
+
+        The embed URL renders Box's built-in document viewer (PDF preview,
+        download button, etc.) inside an iframe. This is the same viewer
+        Box uses on its own site — it supports PDFs, Office docs, images,
+        and many other file types.
+
+        If the URL is already an embed URL or doesn't match the expected
+        pattern, we return it as-is and let Box handle any errors.
+        """
+        if not self.box_url:
+            return ""
+        url = self.box_url.strip()
+        # Convert /s/ shared links to /embed/s/ embed links
+        if "/s/" in url and "/embed/" not in url:
+            url = url.replace("/s/", "/embed/s/", 1)
+        return url
+
+    @property
+    def has_box_document(self):
+        """Check whether this record has a Box link configured."""
+        return bool(self.box_url)
+
+    @property
+    def has_wagtail_documents(self):
+        """Check whether this record has Wagtail file attachments."""
+        return self.documents.exists()
+
     def serve(self, request, *args, **kwargs):
         """
         Override serve() to enforce access control for non-public records.
@@ -250,9 +330,11 @@ class RecordPage(Page):
         and the user isn't logged in, we redirect to the login page with
         a ?next= parameter so they're sent back after authenticating.
 
-        This is the standard Wagtail pattern for view-level access control
-        on individual pages. It's simpler than middleware-based approaches
-        because the logic lives right on the model that needs it.
+        Note: this only controls access to the Wagtail page. The Box
+        document itself has its own sharing permissions managed in Box.
+        If the Box link is set to "anyone with the link," the document
+        is accessible regardless of this flag. To truly restrict a
+        document, set it to private in BOTH Box AND Wagtail.
         """
         if not self.is_public and not request.user.is_authenticated:
             login_url = reverse("wagtailadmin_login")
