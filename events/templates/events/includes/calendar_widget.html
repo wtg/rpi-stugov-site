@@ -97,11 +97,14 @@
         // Number of days in the month
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        // Build a set of days that have events for quick lookup
+        // Build a set of days that have events for quick lookup.
+        // Parse the date string directly — do NOT use new Date() because
+        // it interprets "YYYY-MM-DD" as UTC, and getDate() returns local
+        // time, causing an off-by-one error in timezones west of UTC.
         const eventDays = new Set();
         events.forEach(e => {
-            const d = new Date(e.start_date);
-            eventDays.add(d.getDate());
+            const day = parseInt(e.start_date.split('-')[2], 10);
+            eventDays.add(day);
         });
 
         const today = new Date();
@@ -148,10 +151,10 @@
         const title = document.getElementById('cal-events-title');
         const list = document.getElementById('cal-events-list');
 
-        // Filter events for this specific day
+        // Filter events for this specific day (parse string directly to
+        // avoid UTC-vs-local timezone mismatch with new Date())
         const dayEvents = events.filter(e => {
-            const d = new Date(e.start_date);
-            return d.getDate() === day;
+            return parseInt(e.start_date.split('-')[2], 10) === day;
         });
 
         if (dayEvents.length === 0) {
