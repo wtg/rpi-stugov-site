@@ -14,11 +14,11 @@
 {# No dependencies — just vanilla JS and Tailwind CSS classes.        #}
 {# ================================================================== #}
 
-<div id="calendar" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+<div id="calendar" class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
     {# Calendar header with month/year and navigation #}
     <div class="flex items-center justify-between mb-4">
         <button onclick="changeMonth(-1)"
-                class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                class="p-2 hover:bg-rose-50 rounded-lg transition-colors"
                 aria-label="Previous month">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -26,7 +26,7 @@
         </button>
         <h2 id="cal-title" class="text-lg font-bold text-gray-900"></h2>
         <button onclick="changeMonth(1)"
-                class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                class="p-2 hover:bg-rose-50 rounded-lg transition-colors"
                 aria-label="Next month">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -121,7 +121,7 @@
         for (let day = 1; day <= daysInMonth; day++) {
             const cell = document.createElement('button');
             cell.textContent = day;
-            cell.className = 'h-10 rounded-lg text-sm relative hover:bg-gray-100 transition-colors';
+            cell.className = 'h-10 rounded-lg text-sm relative hover:bg-rose-50 transition-colors';
 
             // Highlight today
             if (isCurrentMonth && day === today.getDate()) {
@@ -169,7 +169,7 @@
         list.innerHTML = '';
         dayEvents.forEach(e => {
             const item = document.createElement('div');
-            item.className = 'bg-gray-50 rounded-lg p-3';
+            item.className = 'bg-rose-50/50 rounded-xl p-3';
             let timeStr = '';
             if (e.start_time) {
                 // Format time from HH:MM:SS to readable format

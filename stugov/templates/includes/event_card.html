@@ -10,10 +10,10 @@
 
 {% load wagtailcore_tags %}
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow">
     <div class="flex items-start gap-4">
         {# Date badge — visual date indicator on the left #}
-        <div class="flex-shrink-0 text-center bg-rpi-red text-white rounded-lg p-2 min-w-[3.5rem]">
+        <div class="flex-shrink-0 text-center bg-gradient-to-br from-rose-400 to-rose-600 text-white rounded-xl p-2 min-w-[3.5rem]">
             <div class="text-xs font-medium uppercase">
                 {# date filter format: "M" = abbreviated month (Jan, Feb, etc.) #}
                 {{ event.start_date|date:"M" }}

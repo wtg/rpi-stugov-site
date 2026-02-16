@@ -25,14 +25,14 @@
 <div class="my-4">
     {% if value.style == "primary" %}
     <a href="{{ href }}"
-       class="inline-block px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
-              hover:bg-rpi-red-dark transition-colors">
+       class="inline-block px-6 py-3 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-medium rounded-xl
+              shadow-md shadow-rose-200 hover:from-rose-600 hover:to-rose-700 hover:shadow-lg hover:shadow-rose-300 transition-all">
         {{ value.text }}
     </a>
     {% elif value.style == "secondary" %}
     <a href="{{ href }}"
-       class="inline-block px-6 py-3 border-2 border-rpi-red text-rpi-red font-medium rounded-lg
-              hover:bg-rpi-red hover:text-white transition-colors">
+       class="inline-block px-6 py-3 border-2 border-rose-500 text-rose-600 font-medium rounded-xl
+              hover:bg-rose-500 hover:text-white transition-all">
         {{ value.text }}
     </a>
     {% else %}

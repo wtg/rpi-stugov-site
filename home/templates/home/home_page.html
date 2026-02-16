@@ -2,10 +2,8 @@
 {# HOME PAGE TEMPLATE                                                 #}
 {#                                                                     #}
 {# Renders the site's landing page with:                              #}
-{#   1. Hero section (title, subtitle, optional background image)     #}
-{#   2. Quick links (prominent buttons to key pages)                  #}
-{#   3. StreamField body content (main area)                          #}
-{#   4. Upcoming events sidebar                                       #}
+{#   1. Hero section (title, subtitle, buttons, image, events)        #}
+{#   2. StreamField body content (main area, full width)               #}
 {#                                                                     #}
 {# The 'page' variable is the HomePage instance. The 'upcoming_events'#}
 {# variable comes from HomePage.get_context().                        #}
@@ -18,80 +16,92 @@
 
 {% block content %}
     {# ---- Hero Section ---- #}
-    <section class="relative bg-stugov-dark text-white py-20">
-        {% if page.hero_image %}
-        <div class="absolute inset-0">
-            {% image page.hero_image fill-1920x600 class="w-full h-full object-cover opacity-30" %}
-        </div>
-        {% endif %}
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4">
-                {{ page.hero_title }}
-            </h1>
-            {% if page.hero_subtitle %}
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
-                {{ page.hero_subtitle }}
-            </p>
-            {% endif %}
+    <section class="border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
+
+                {# ---- Left: Title, subtitle, buttons (spans 2 cols) ---- #}
+                <div class="lg:col-span-2 flex flex-col">
+                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-slate-900">
+                        {{ page.hero_title }}
+                    </h1>
+                    {% if page.hero_subtitle %}
+                    <p class="mt-3 text-base md:text-lg text-slate-500 max-w-xl">
+                        {{ page.hero_subtitle }}
+                    </p>
+                    {% endif %}
+
+                    {% if page.quick_links.all %}
+                    <div class="mt-6 flex flex-wrap gap-2.5">
+                        {% for link in page.quick_links.all %}
+                            {% if forloop.first %}
+                            <a href="{{ link.url }}"
+                               class="px-5 py-2.5 bg-rose-500 text-white text-sm font-medium rounded-xl
+                                      hover:bg-rose-600 transition-colors">
+                                {{ link.link_text }}
+                            </a>
+                            {% else %}
+                            <a href="{{ link.url }}"
+                               class="px-5 py-2.5 border border-slate-300 text-slate-700 text-sm font-medium rounded-xl
+                                      hover:border-slate-400 hover:bg-slate-50 transition-colors">
+                                {{ link.link_text }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {# ---- Right: Upcoming Events card ---- #}
+                <aside class="lg:col-span-1">
+                    <div class="bg-white rounded-xl border border-slate-200 p-5 h-full flex flex-col">
+                        <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">Upcoming Events</h2>
+                        {% if upcoming_events %}
+                        <div class="space-y-3 flex-grow">
+                            {% for event in upcoming_events %}
+                                {% include "includes/event_card.html" with event=event %}
+                            {% endfor %}
+                        </div>
+                        <a href="/events/" class="block mt-4 text-center text-sm text-rose-500 hover:text-rose-600 font-medium transition-colors">
+                            View all events &rarr;
+                        </a>
+                        {% else %}
+                        <p class="text-slate-400 text-sm flex-grow">No upcoming events.</p>
+                        {% endif %}
+                    </div>
+                </aside>
+
+            </div>
         </div>
     </section>
 
-    {# ---- Quick Links ---- #}
-    {% if page.quick_links.all %}
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {% for link in page.quick_links.all %}
-            <a href="{{ link.url }}"
-               class="bg-white rounded-lg shadow-md p-4 text-center hover:shadow-lg
-                      hover:-translate-y-1 transition-all">
-                <span class="text-rpi-red font-semibold">{{ link.link_text }}</span>
-            </a>
-            {% endfor %}
+    {# ---- Hero Image Section ---- #}
+    {% if page.hero_image %}
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="rounded-2xl overflow-hidden border border-slate-200">
+            {% image page.hero_image fill-1400x500 class="w-full object-cover" %}
         </div>
     </section>
     {% endif %}
 
+    {# ---- Body Content (full width) ---- #}
+    {% if page.body %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {# ---- Main Content (2/3 width on desktop) ---- #}
-            <div class="lg:col-span-2">
-                {% if page.body %}
-                <div class="prose prose-lg max-w-none">
-                    {% for block in page.body %}
-                        {% if block.block_type == "heading" %}
-                            <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">{{ block.value }}</h2>
-                        {% elif block.block_type == "info_cards" %}
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6 not-prose">
-                                {% for card in block.value %}
-                                    {% include_block card %}
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {% include_block block %}
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            {# ---- Sidebar: Upcoming Events (1/3 width on desktop) ---- #}
-            <aside class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
-                    {% if upcoming_events %}
-                    <div class="space-y-4">
-                        {% for event in upcoming_events %}
-                            {% include "includes/event_card.html" with event=event %}
+        <div class="prose prose-lg max-w-none">
+            {% for block in page.body %}
+                {% if block.block_type == "heading" %}
+                    <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">{{ block.value }}</h2>
+                {% elif block.block_type == "info_cards" %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-6 not-prose">
+                        {% for card in block.value %}
+                            {% include_block card %}
                         {% endfor %}
                     </div>
-                    <a href="/events/" class="block mt-4 text-center text-rpi-red hover:text-rpi-red-dark font-medium">
-                        View All Events &rarr;
-                    </a>
-                    {% else %}
-                    <p class="text-gray-500 text-sm">No upcoming events.</p>
-                    {% endif %}
-                </div>
-            </aside>
+                {% else %}
+                    {% include_block block %}
+                {% endif %}
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 {% endblock %}

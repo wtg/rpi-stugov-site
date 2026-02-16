@@ -41,6 +41,13 @@
         {% endif %}
 
         {# ------------------------------------------------------------ #}
+        {# Geist font (by Vercel) via CDN                                #}
+        {# ------------------------------------------------------------ #}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.min.css" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.min.css" rel="stylesheet" />
+
+        {# ------------------------------------------------------------ #}
         {# Tailwind CSS via CDN (development only)                       #}
         {#                                                                #}
         {# The CDN script processes Tailwind classes in the browser at    #}
@@ -54,17 +61,20 @@
         {# ------------------------------------------------------------ #}
         <script src="https://cdn.tailwindcss.com"></script>
         <script>
-            // Configure Tailwind with RPI's brand colors and custom theme
             tailwind.config = {
                 theme: {
                     extend: {
+                        fontFamily: {
+                            'sans': ['"Geist"', 'system-ui', '-apple-system', 'sans-serif'],
+                            'mono': ['"Geist Mono"', 'ui-monospace', 'monospace'],
+                        },
                         colors: {
-                            // RPI's official red
-                            'rpi-red': '#d6001c',
-                            'rpi-red-dark': '#a50015',
-                            // Neutral tones for UI
-                            'stugov-dark': '#1a1a2e',
-                            'stugov-gray': '#4a4a68',
+                            // Accent — Tailwind rose palette
+                            'rpi-red': '#f43f5e',
+                            'rpi-red-dark': '#e11d48',
+                            // Warmer dark tones — slate
+                            'stugov-dark': '#0f172a',
+                            'stugov-gray': '#475569',
                         }
                     }
                 }
@@ -78,7 +88,7 @@
         {% endblock %}
     </head>
 
-    <body class="flex flex-col min-h-full bg-gray-50 text-gray-900 {% block body_class %}{% endblock %}">
+    <body class="flex flex-col min-h-full bg-stone-50 text-gray-900 antialiased {% block body_class %}{% endblock %}">
         {# Wagtail userbar: shows edit/admin links for logged-in editors #}
         {% wagtailuserbar %}
 

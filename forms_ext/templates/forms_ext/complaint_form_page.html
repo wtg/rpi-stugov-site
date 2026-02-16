@@ -45,7 +45,7 @@
     {% endif %}
 
     {# ---- The Form ---- #}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
         <form action="{% pageurl page %}" method="POST" class="space-y-6">
             {% csrf_token %}
 
@@ -82,8 +82,8 @@
             {% endfor %}
 
             <button type="submit"
-                    class="w-full px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
-                           hover:bg-rpi-red-dark transition-colors">
+                    class="w-full px-6 py-3 bg-gradient-to-r from-rose-500 to-rose-600 text-white font-medium rounded-xl
+                           shadow-md shadow-rose-200 hover:from-rose-600 hover:to-rose-700 transition-all">
                 Submit
             </button>
         </form>
@@ -103,7 +103,7 @@
         width: 100%;
         padding: 0.5rem 0.75rem;
         border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
+        border-radius: 0.75rem;
         font-size: 0.875rem;
         line-height: 1.25rem;
     }
@@ -111,8 +111,8 @@
     .form-field select:focus,
     .form-field textarea:focus {
         outline: none;
-        border-color: #d6001c;
-        box-shadow: 0 0 0 3px rgba(214, 0, 28, 0.1);
+        border-color: #f43f5e;
+        box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
     }
     .form-field textarea {
         min-height: 6rem;

@@ -52,7 +52,7 @@
 
     {# ---- Summary ---- #}
     {% if page.summary %}
-    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+    <div class="bg-slate-50 rounded-xl p-4 mb-6">
         <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Summary</h2>
         <div class="prose prose-sm max-w-none">
             {{ page.summary|richtext }}
@@ -88,7 +88,7 @@
                 </svg>
             </a>
         </div>
-        <div class="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
             <iframe src="{{ page.box_embed_url }}"
                     width="100%"
                     height="{{ page.box_embed_height }}"
@@ -112,7 +112,7 @@
     {# If there's no Box embed, these are the primary document source.  #}
     {# ================================================================ #}
     {% if page.has_wagtail_documents %}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
             {% if page.has_box_document %}
                 {# If Box is present, these are supplementary #}
@@ -124,7 +124,7 @@
         </h2>
         <div class="space-y-3">
             {% for doc in page.documents.all %}
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                 <div class="flex items-center gap-3">
                     <svg class="h-8 w-8 text-rpi-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -32,8 +32,8 @@
     <nav class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
         {% for child in children %}
         <a href="{% pageurl child %}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-5
-                  hover:shadow-md hover:border-rpi-red transition-all">
+           class="bg-white rounded-xl shadow-sm border border-slate-100 p-5
+                  hover:shadow-md hover:border-rose-300 hover:-translate-y-0.5 transition-all duration-200">
             <h3 class="font-semibold text-gray-900">{{ child.title }}</h3>
             {% if child.specific.intro %}
             <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ child.specific.intro|striptags|truncatechars:80 }}</p>
@@ -63,7 +63,7 @@
         {# ---- Sidebar: Meeting Info & Contact ---- #}
         <aside class="lg:col-span-1">
             {% if page.meeting_schedule or page.contact_email %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
                 {% if page.meeting_schedule %}
                 <h3 class="font-semibold text-gray-900 mb-2">Meeting Schedule</h3>
                 <div class="text-sm text-gray-600 mb-4">

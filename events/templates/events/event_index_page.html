@@ -35,7 +35,7 @@
         {# ---- Event Listing Sidebar (1/3 width) ---- #}
         <aside class="lg:col-span-1">
             {# Upcoming Events #}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-6">
                 <h2 class="text-xl font-bold text-gray-900 mb-4">Upcoming Events</h2>
                 {% if upcoming_events %}
                 <div class="space-y-4">
@@ -50,7 +50,7 @@
 
             {# Past Events #}
             {% if past_events %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">Recent Past Events</h2>
                 <div class="space-y-3">
                     {% for event in past_events %}

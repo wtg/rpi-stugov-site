@@ -30,8 +30,8 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for committee in committees %}
         <a href="{% pageurl committee %}"
-           class="bg-white rounded-lg shadow-sm border border-gray-200 p-6
-                  hover:shadow-md hover:border-rpi-red transition-all">
+           class="bg-white rounded-xl shadow-sm border border-slate-100 p-6
+                  hover:shadow-md hover:border-rose-300 hover:-translate-y-0.5 transition-all duration-200">
             <h2 class="text-xl font-semibold text-gray-900">{{ committee.title }}</h2>
             {% with specific=committee.specific %}
             {% if specific.description %}
