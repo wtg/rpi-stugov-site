@@ -117,9 +117,9 @@ class HomePage(Page):
         """
         Add upcoming events to the homepage template context.
 
-        This import is inside the method (not at module top) to avoid
-        a circular import: home.models would import events.models, but
-        events.models references home.HomePage in parent_page_types.
+        These imports are inside the method (not at module top) to avoid
+        circular imports: home.models would import events/branches models,
+        but those models reference home.HomePage in parent_page_types.
         Django resolves string references ("home.HomePage") lazily, but
         Python-level imports would create a cycle.
         """
@@ -139,6 +139,35 @@ class HomePage(Page):
     class Meta:
         verbose_name = "Home Page"
 
+class AltHomePage(HomePage):
+    def get_context(self, request, *args, **kwargs):
+        """
+        Add upcoming events and branch pages to the homepage template context.
+
+        These imports are inside the method (not at module top) to avoid
+        circular imports: home.models would import events/branches models,
+        but those models reference home.HomePage in parent_page_types.
+        Django resolves string references ("home.HomePage") lazily, but
+        Python-level imports would create a cycle.
+        """
+        context = super().get_context(request, *args, **kwargs)
+
+        from events.models import EventPage
+        from branches.models import BranchPage
+
+        from django.utils import timezone
+
+        context["upcoming_events"] = (
+            EventPage.objects.live()
+            .filter(start_date__gte=timezone.now().date())
+            .order_by("start_date", "start_time")[:5]
+        )
+        context["branch_pages"] = (
+            BranchPage.objects.live()
+            .child_of(self)
+            .order_by("title")
+        )
+        return context
 
 class HomePageQuickLink(Orderable):
     """
