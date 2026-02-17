@@ -140,17 +140,20 @@ class HomePage(Page):
         verbose_name = "Home Page"
 
 class AltHomePage(HomePage):
-    def get_context(self, request, *args, **kwargs):
-        """
-        Add upcoming events and branch pages to the homepage template context.
+    """
+    Alternate homepage layout for A/B testing on the staging server.
 
-        These imports are inside the method (not at module top) to avoid
-        circular imports: home.models would import events/branches models,
-        but those models reference home.HomePage in parent_page_types.
-        Django resolves string references ("home.HomePage") lazily, but
-        Python-level imports would create a cycle.
-        """
-        context = super().get_context(request, *args, **kwargs)
+    Inherits all fields from HomePage but overrides get_context() to
+    query branches and events globally rather than from child pages.
+    This is necessary because AltHomePage lives under Root as a sibling
+    of HomePage, so it doesn't have its own children — the BranchPages,
+    EventIndexPage, etc. all live under the original HomePage.
+    """
+
+    def get_context(self, request, *args, **kwargs):
+        # Skip HomePage.get_context() — go straight to Page.get_context()
+        # so we don't get the child_of(self) queries that return empty.
+        context = Page.get_context(self, request, *args, **kwargs)
 
         from events.models import EventPage
         from branches.models import BranchPage
@@ -164,7 +167,6 @@ class AltHomePage(HomePage):
         )
         context["branch_pages"] = (
             BranchPage.objects.live()
-            .child_of(self)
             .order_by("title")
         )
         return context
