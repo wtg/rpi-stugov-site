@@ -48,13 +48,14 @@ BRANCH_CHOICES = [
 
 ROLE_CHOICES = [
     # Executive roles (used across most branches)
-    ("president", "President"),
+    ("president_union", "President of the Union"),
     ("vice_president", "Vice President"),
     ("secretary", "Secretary"),
     ("treasurer", "Treasurer"),
     # Senate-specific
     ("senator", "Senator"),
     # UC/GC-specific
+    ("council_president", "Council President"),
     ("representative", "Representative"),
     # Committee roles
     ("chair", "Committee Chair"),
