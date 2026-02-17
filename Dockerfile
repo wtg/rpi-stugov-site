@@ -35,6 +35,9 @@ RUN pip install setuptools
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
 
+# Use /data folder for persistent data
+RUN mkdir data
+
 # Set this directory to be owned by the "wagtail" user. This Wagtail project
 # uses SQLite, the folder needs to be owned by the user that
 # will be writing to the database file.
