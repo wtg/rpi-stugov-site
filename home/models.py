@@ -167,7 +167,7 @@ class AltHomePage(HomePage):
         )
         context["branch_pages"] = (
             BranchPage.objects.live()
-            .order_by("title")
+            .order_by("path")
         )
         return context
 
