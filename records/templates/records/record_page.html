@@ -93,9 +93,12 @@
                     width="100%"
                     height="{{ page.box_embed_height }}"
                     frameborder="0"
-                    allowfullscreen
                     class="w-full"
-                    title="Document viewer for {{ page.title }}">
+                    title="Document viewer for {{ page.title }}"
+                    allow="local-network-access *; clipboard-read *; clipboard-write *" 
+                    allowfullscreen
+                    webkitallowfullscreen
+                    msallowfullscreen>>
             </iframe>
         </div>
         <p class="text-xs text-gray-400 mt-2">
