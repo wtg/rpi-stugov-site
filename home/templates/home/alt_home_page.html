@@ -59,13 +59,21 @@
     {% if branch_pages %}
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Your Student Government</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-6">
             {% for branch in branch_pages %}
             <a href="{% pageurl branch %}"
-               class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ branch.title }}</h3>
-                {% if branch.tagline %}
-                <p class="text-sm text-gray-600">{{ branch.tagline }}</p>
+               class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow col-span-3 flex flex-row">
+                {# Text fills available space; image is flush right #}
+                <div class="flex flex-col p-6 {% if branch.image %}w-2/3{% endif %}">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ branch.title }}</h3>
+                    {% if branch.tagline %}
+                        <p class="text-sm text-gray-600">{{ branch.tagline }}</p>
+                    {% endif %}
+                </div>
+                {% if branch.image %}
+                <div class="w-1/3 flex-shrink-0 relative">
+                    {% image branch.image fill-200x200 class="absolute inset-0 w-full h-full object-cover" %}
+                </div>
                 {% endif %}
             </a>
             {% endfor %}

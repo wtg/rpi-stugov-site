@@ -10,7 +10,7 @@
 {# ================================================================== #}
 
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load wagtailcore_tags wagtailimages_tags %}
 
 {% block body_class %}template-branchpage{% endblock %}
 
@@ -18,6 +18,11 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     {# ---- Branch Header ---- #}
     <header class="mb-8">
+        {% if page.image %}
+        <div class="rounded-xl overflow-hidden mb-6 max-h-72">
+            {% image page.image fill-1200x400 class="w-full object-cover" %}
+        </div>
+        {% endif %}
         <h1 class="text-4xl font-bold text-gray-900">{{ page.title }}</h1>
         {% if page.tagline %}
         <p class="text-xl text-gray-600 mt-2">{{ page.tagline }}</p>

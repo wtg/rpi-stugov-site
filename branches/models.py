@@ -185,6 +185,14 @@ class BranchPage(Page):
         blank=True,
         help_text="Short description shown prominently on the landing page.",
     )
+    image = models.ForeignKey(
+        get_image_model_string(),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Photo representing this branch (e.g. a group photo or meeting).",
+    )
     body = StreamField(
         STANDARD_STREAMFIELD_BLOCKS,
         blank=True,
@@ -201,6 +209,7 @@ class BranchPage(Page):
     content_panels = Page.content_panels + [
         FieldPanel("branch_type"),
         FieldPanel("tagline"),
+        FieldPanel("image"),
         FieldPanel("body"),
         MultiFieldPanel(
             [
