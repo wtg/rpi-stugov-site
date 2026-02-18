@@ -53,7 +53,7 @@ ROLE_CHOICES = [
     ("secretary", "Secretary"),
     ("treasurer", "Treasurer"),
     # Senate-specific
-    ("grand_marshall", "Grand Marshall"),
+    ("grand_marshall", "Grand Marshal"),
     ("senator", "Senator"),
     # UC/GC-specific
     ("council_president", "Council President"),
