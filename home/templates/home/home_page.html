@@ -18,38 +18,58 @@
 
 {% block content %}
     {# ---- Hero Section ---- #}
-    <section class="relative bg-stugov-dark text-white py-20">
-        {% if page.hero_image %}
-        <div class="absolute inset-0">
-            {% image page.hero_image fill-1920x600 class="w-full h-full object-cover opacity-30" %}
-        </div>
-        {% endif %}
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4">
-                {{ page.hero_title }}
-            </h1>
-            {% if page.hero_subtitle %}
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
-                {{ page.hero_subtitle }}
-            </p>
-            {% endif %}
-        </div>
-    </section>
+    <section class="relative bg-stugov-dark text-white py-12 md:py-16 overflow-hidden">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-10">
+                
+                {# Left Content: Title, Subtitle, and Buttons #}
+                <div class="w-full lg:w-[45%] text-left z-10">
+                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight tracking-tight">
+                        {{ page.hero_title }}
+                    </h1>
+                    {% if page.hero_subtitle %}
+                    <p class="text-lg md:text-xl text-gray-300 mb-6 max-w-xl leading-relaxed">
+                        {{ page.hero_subtitle }}
+                    </p>
+                    {% endif %}
+                    
+                    {# Buttons (formerly Quick Links) moved here #}
+                    {% if page.quick_links.all %}
+                    <div class="flex flex-wrap gap-3 mt-6">
+                        {% for link in page.quick_links.all %}
+                        <a href="{{ link.url }}"
+                           class="inline-flex items-center justify-center {% if forloop.first %}bg-rpi-red text-white hover:bg-rpi-red-dark{% else %}bg-white text-stugov-dark hover:bg-gray-100{% endif %} px-5 py-2.5 rounded-lg font-bold shadow-lg transition-all hover:-translate-y-1 active:scale-95 border-2 border-transparent hover:border-rpi-red/20 text-sm md:text-base">
+                            {{ link.link_text }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
 
-    {# ---- Quick Links ---- #}
-    {% if page.quick_links.all %}
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {% for link in page.quick_links.all %}
-            <a href="{{ link.url }}"
-               class="bg-white rounded-lg shadow-md p-4 text-center hover:shadow-lg
-                      hover:-translate-y-1 transition-all">
-                <span class="text-rpi-red font-semibold">{{ link.link_text }}</span>
-            </a>
-            {% endfor %}
+                {# Right Content: Image with enhanced emphasis #}
+                <div class="w-full lg:w-[55%] relative group">
+                    {% if page.hero_image %}
+                    <div class="relative z-10 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-4 border-white/10 transform transition-all duration-700 ease-out">
+                        {# High-impact rectangular ratio #}
+                        {% image page.hero_image fill-1200x750 class="w-full h-auto object-cover" %}
+                    </div>
+                    {# Enhanced decorative background glow #}
+                    <div class="absolute -inset-10 bg-rpi-red/30 blur-[100px] rounded-full opacity-40 group-hover:opacity-60 transition-opacity duration-1000 animate-pulse"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/10 blur-[120px] rounded-full opacity-30"></div>
+                    {% else %}
+                    {# Placeholder with more presence #}
+                    <div class="relative z-10 w-full aspect-[16/10] bg-gradient-to-br from-rpi-red to-stugov-dark rounded-xl flex items-center justify-center border-4 border-white/10 shadow-2xl">
+                        <span class="text-7xl opacity-20 font-black tracking-tighter">STUDENT GOV</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+        
+        {# Decorative background elements #}
+        <div class="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-rpi-red/10 blur-[100px] rounded-full"></div>
+        <div class="absolute bottom-0 left-0 -ml-24 -mb-24 w-96 h-96 bg-blue-500/10 blur-[100px] rounded-full"></div>
     </section>
-    {% endif %}
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
