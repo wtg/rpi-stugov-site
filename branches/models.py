@@ -23,6 +23,7 @@ from django.db import models
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
+from wagtail.admin.forms.models import WagtailAdminModelForm
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.fields import RichTextField, StreamField
 from wagtail.images import get_image_model_string
@@ -289,7 +290,7 @@ class BranchMemberPlacement(Orderable):
 
     panels = [
         FieldPanel("member"),
-        FieldPanel("roles", widget=forms.CheckboxSelectMultiple(choices=ROLE_CHOICES)),
+        FieldPanel("roles"),
         FieldPanel("role_title_override"),
     ]
 
@@ -300,6 +301,27 @@ class BranchMemberPlacement(Orderable):
             return self.role_title_override
         role_map = dict(ROLE_CHOICES)
         return ", ".join(role_map.get(r, r) for r in (self.roles or []))
+
+    class BranchMemberPlacementForm(WagtailAdminModelForm):
+        """Custom form that renders roles as checkboxes and round-trips to JSON."""
+        roles = forms.TypedMultipleChoiceField(
+            choices=ROLE_CHOICES,
+            widget=forms.CheckboxSelectMultiple,
+            required=False,
+            coerce=str,
+        )
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # Pre-populate checkboxes from the JSON list
+            if self.instance and self.instance.pk:
+                self.initial["roles"] = self.instance.roles or []
+
+        def clean_roles(self):
+            """Return the selected values as a plain list (stored in JSONField)."""
+            return list(self.cleaned_data.get("roles", []))
+
+    base_form_class = BranchMemberPlacementForm
 
 
 class MemberListingPage(Page):
