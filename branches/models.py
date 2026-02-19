@@ -17,6 +17,7 @@ Key design decisions:
     data like the person's role on that particular page.
 """
 
+from django import forms
 from django.db import models
 
 from modelcluster.fields import ParentalKey
@@ -53,7 +54,8 @@ ROLE_CHOICES = [
     ("secretary", "Secretary"),
     ("treasurer", "Treasurer"),
     # Senate-specific
-    ("grand_marshall", "Grand Marshal"),
+    ("grand_marshal", "Grand Marshal"),
+    ("vice_grand_marshal", "Vice Grand Marshal"),
     ("senator", "Senator"),
     # UC/GC-specific
     ("council_president", "Council President"),
@@ -65,6 +67,11 @@ ROLE_CHOICES = [
     # Judicial Board
     ("chief_justice", "Chief Justice"),
     ("justice", "Justice"),
+    # Misc Officers
+    ("secretary", "Secretary"),
+    ("treasurer", "Treasurer"),
+    ("parliamentarian", "Parliamentarian"),
+    ("liaison", "Liaison"),
 ]
 
 
@@ -269,7 +276,10 @@ class BranchMemberPlacement(Orderable):
         # We don't need MemberProfile.memberlistingpage_set because we
         # always query from the page side, not the member side.
     )
-    role = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    roles = models.JSONField(
+        default=list,
+        help_text="One or more roles this member holds on this page.",
+    )
     role_title_override = models.CharField(
         max_length=100,
         blank=True,
@@ -279,14 +289,17 @@ class BranchMemberPlacement(Orderable):
 
     panels = [
         FieldPanel("member"),
-        FieldPanel("role"),
+        FieldPanel("roles", widget=forms.CheckboxSelectMultiple(choices=ROLE_CHOICES)),
         FieldPanel("role_title_override"),
     ]
 
     @property
     def display_role(self):
-        """Return the custom title if set, otherwise the human-readable role name."""
-        return self.role_title_override or self.get_role_display()
+        """Return the custom title if set, otherwise a comma-separated list of role names."""
+        if self.role_title_override:
+            return self.role_title_override
+        role_map = dict(ROLE_CHOICES)
+        return ", ".join(role_map.get(r, r) for r in (self.roles or []))
 
 
 class MemberListingPage(Page):

@@ -8,13 +8,12 @@ Usage:
     python manage.py import_members members.csv --clear
 
 CSV format (header row required):
-    first_name,last_name,email,class_year,major,bio,branch,role,role_title_override
+    first_name,last_name,email,class_year,major,bio,branch,roles,role_title_override
 
   - branch: one of senate, eboard, uc, gc, jboard
-  - role: one of the ROLE_CHOICES keys (grand_marshall, senator, president_union,
-    vice_president, secretary, treasurer, council_president, representative,
-    chair, vice_chair, member, chief_justice, justice)
-  - role_title_override: optional custom title (leave blank to use role default)
+  - roles: one or more ROLE_CHOICES keys separated by semicolons, e.g.
+    "senator" or "senator;chair" (semicolons avoid conflicting with CSV commas)
+  - role_title_override: optional custom title (leave blank to use role defaults)
   - email, class_year, major, bio: all optional (leave blank if unknown)
 
 The command will:
@@ -22,7 +21,7 @@ The command will:
   2. Find the MemberListingPage under the matching BranchPage
   3. Create a BranchMemberPlacement linking the member to that page
 
-Duplicate placements (same member + same page + same role) are skipped.
+Duplicate placements (same member + same page) are skipped.
 """
 
 import csv
@@ -43,7 +42,7 @@ from branches.models import (
 VALID_BRANCHES = {code for code, _ in BRANCH_CHOICES}
 VALID_ROLES = {code for code, _ in ROLE_CHOICES}
 
-REQUIRED_COLUMNS = {"first_name", "last_name", "branch", "role"}
+REQUIRED_COLUMNS = {"first_name", "last_name", "branch", "roles"}
 ALL_COLUMNS = REQUIRED_COLUMNS | {
     "email",
     "class_year",
@@ -141,7 +140,7 @@ class Command(BaseCommand):
             first_name = row.get("first_name", "")
             last_name = row.get("last_name", "")
             branch = row.get("branch", "")
-            role = row.get("role", "")
+            roles_raw = row.get("roles", "")
 
             # Validate required fields
             if not first_name or not last_name:
@@ -161,10 +160,20 @@ class Command(BaseCommand):
                 stats["errors"] += 1
                 continue
 
-            if role not in VALID_ROLES:
+            # Parse semicolon-separated roles
+            roles = [r.strip() for r in roles_raw.split(";") if r.strip()]
+            if not roles:
+                self.stderr.write(
+                    self.style.ERROR(f"Row {i}: no roles specified, skipping.")
+                )
+                stats["errors"] += 1
+                continue
+
+            invalid_roles = [r for r in roles if r not in VALID_ROLES]
+            if invalid_roles:
                 self.stderr.write(
                     self.style.ERROR(
-                        f"Row {i}: invalid role '{role}'. "
+                        f"Row {i}: invalid role(s) {invalid_roles}. "
                         f"Must be one of: {', '.join(sorted(VALID_ROLES))}"
                     )
                 )
@@ -208,7 +217,7 @@ class Command(BaseCommand):
                 action = "update" if exists else "create"
                 self.stdout.write(
                     f"Row {i}: would {action} profile '{first_name} {last_name}' "
-                    f"→ {branch} as {role}"
+                    f"→ {branch} as {', '.join(roles)}"
                 )
                 if action == "create":
                     stats["profiles_created"] += 1
@@ -236,17 +245,31 @@ class Command(BaseCommand):
             listing_page = listing_pages[branch]
             role_override = row.get("role_title_override", "")
 
-            _, placement_created = BranchMemberPlacement.objects.get_or_create(
+            # One placement per person per page; if they already exist,
+            # merge the new roles into their existing roles list.
+            placement, placement_created = BranchMemberPlacement.objects.get_or_create(
                 page=listing_page,
                 member=profile,
-                role=role,
-                defaults={"role_title_override": role_override},
+                defaults={
+                    "roles": roles,
+                    "role_title_override": role_override,
+                },
             )
 
             if placement_created:
                 stats["placements_created"] += 1
             else:
-                stats["placements_skipped"] += 1
+                # Merge new roles into existing
+                existing = set(placement.roles or [])
+                merged = existing | set(roles)
+                if merged != existing or (role_override and role_override != placement.role_title_override):
+                    placement.roles = list(merged)
+                    if role_override:
+                        placement.role_title_override = role_override
+                    placement.save()
+                    stats["placements_created"] += 1
+                else:
+                    stats["placements_skipped"] += 1
 
         # -- Summary --
         prefix = "[DRY RUN] " if dry_run else ""
