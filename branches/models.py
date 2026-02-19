@@ -23,7 +23,6 @@ from django.db import models
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
-from wagtail.admin.forms.models import WagtailAdminModelForm
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.fields import RichTextField, StreamField
 from wagtail.images import get_image_model_string
@@ -32,6 +31,39 @@ from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
 from stugov.blocks import STANDARD_STREAMFIELD_BLOCKS
+
+
+# ---------------------------------------------------------------------------
+# Custom field: JSONField that renders as CheckboxSelectMultiple
+# ---------------------------------------------------------------------------
+
+class MultiSelectField(models.JSONField):
+    """
+    A JSONField that stores a list of strings but renders as checkboxes
+    in Django/Wagtail admin forms. Works correctly inside InlinePanel.
+    """
+
+    def __init__(self, *args, choices=None, **kwargs):
+        self.choices_list = choices or []
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        if self.choices_list:
+            kwargs["choices"] = self.choices_list
+        return name, path, args, kwargs
+
+    def formfield(self, **kwargs):
+        defaults = {
+            "form_class": forms.TypedMultipleChoiceField,
+            "choices": self.choices_list,
+            "widget": forms.CheckboxSelectMultiple,
+            "coerce": str,
+            "required": False,
+        }
+        defaults.update(kwargs)
+        # Skip JSONField.formfield() — we don't want a Textarea
+        return models.Field.formfield(self, **defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -277,7 +309,8 @@ class BranchMemberPlacement(Orderable):
         # We don't need MemberProfile.memberlistingpage_set because we
         # always query from the page side, not the member side.
     )
-    roles = models.JSONField(
+    roles = MultiSelectField(
+        choices=ROLE_CHOICES,
         default=list,
         help_text="One or more roles this member holds on this page.",
     )
@@ -301,27 +334,6 @@ class BranchMemberPlacement(Orderable):
             return self.role_title_override
         role_map = dict(ROLE_CHOICES)
         return ", ".join(role_map.get(r, r) for r in (self.roles or []))
-
-    class BranchMemberPlacementForm(WagtailAdminModelForm):
-        """Custom form that renders roles as checkboxes and round-trips to JSON."""
-        roles = forms.TypedMultipleChoiceField(
-            choices=ROLE_CHOICES,
-            widget=forms.CheckboxSelectMultiple,
-            required=False,
-            coerce=str,
-        )
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            # Pre-populate checkboxes from the JSON list
-            if self.instance and self.instance.pk:
-                self.initial["roles"] = self.instance.roles or []
-
-        def clean_roles(self):
-            """Return the selected values as a plain list (stored in JSONField)."""
-            return list(self.cleaned_data.get("roles", []))
-
-    base_form_class = BranchMemberPlacementForm
 
 
 class MemberListingPage(Page):
