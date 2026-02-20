@@ -128,11 +128,16 @@ class HomePage(Page):
         from events.models import EventPage
         from branches.models import BranchPage
 
+        from django.db.models import Q
         from django.utils import timezone
 
+        today = timezone.now().date()
         context["upcoming_events"] = (
             EventPage.objects.live()
-            .filter(start_date__gte=timezone.now().date())
+            .filter(
+                Q(recurrence_frequency="none", start_date__gte=today)
+                | Q(~Q(recurrence_frequency="none"), recurrence_end_date__gte=today)
+            )
             .order_by("start_date", "start_time")[:5]
         )
         context["branch_pages"] = (
@@ -163,11 +168,16 @@ class AltHomePage(HomePage):
         from events.models import EventPage
         from branches.models import BranchPage
 
+        from django.db.models import Q
         from django.utils import timezone
 
+        today = timezone.now().date()
         context["upcoming_events"] = (
             EventPage.objects.live()
-            .filter(start_date__gte=timezone.now().date())
+            .filter(
+                Q(recurrence_frequency="none", start_date__gte=today)
+                | Q(~Q(recurrence_frequency="none"), recurrence_end_date__gte=today)
+            )
             .order_by("start_date", "start_time")[:5]
         )
         context["branch_pages"] = (
