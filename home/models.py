@@ -126,6 +126,7 @@ class HomePage(Page):
         context = super().get_context(request, *args, **kwargs)
 
         from events.models import EventPage
+        from branches.models import BranchPage
 
         from django.utils import timezone
 
@@ -133,6 +134,10 @@ class HomePage(Page):
             EventPage.objects.live()
             .filter(start_date__gte=timezone.now().date())
             .order_by("start_date", "start_time")[:5]
+        )
+        context["branch_pages"] = (
+            BranchPage.objects.live()
+            .order_by("path")
         )
         return context
 
