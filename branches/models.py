@@ -84,14 +84,13 @@ ROLE_CHOICES = [
     # Executive roles (used across most branches)
     ("president_union", "President of the Union"),
     ("vice_president", "Vice President"),
-    ("secretary", "Secretary"),
-    ("treasurer", "Treasurer"),
     # Senate-specific
     ("grand_marshal", "Grand Marshal"),
     ("vice_grand_marshal", "Vice Grand Marshal"),
     ("senator", "Senator"),
     # UC/GC-specific
     ("council_president", "Council President"),
+    ("class_president", "Class President"),
     ("representative", "Representative"),
     # Committee roles
     ("chair", "Committee Chair"),
