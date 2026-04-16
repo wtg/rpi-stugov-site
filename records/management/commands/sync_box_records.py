@@ -26,7 +26,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from boxsdk import CCGAuth, Client, OAuth2
+from boxsdk import CCGAuth, Client
 from boxsdk.exception import BoxAPIException
 
 from records.models import BoxFileCache, BOX_FILE_TYPE_CHOICES
@@ -110,41 +110,26 @@ class Command(BaseCommand):
                 "pass --folder-id."
             )
 
-        # Developer token takes priority (short-lived, for testing).
-        # Falls back to CCG auth (for production cron jobs).
-        dev_token = getattr(settings, "BOX_DEVELOPER_TOKEN", "")
+        client_id = getattr(settings, "BOX_CLIENT_ID", "")
+        client_secret = getattr(settings, "BOX_CLIENT_SECRET", "")
+        enterprise_id = getattr(settings, "BOX_ENTERPRISE_ID", "")
 
-        self.stdout.write("Authenticating with Box...")
+        if not all([client_id, client_secret, enterprise_id]):
+            raise CommandError(
+                "Box API credentials not configured. Set BOX_CLIENT_ID, "
+                "BOX_CLIENT_SECRET, and BOX_ENTERPRISE_ID in the environment."
+            )
+
+        # Authenticate with Box via Client Credentials Grant (CCG).
+        # Requires the app to be authorized by a Box admin first.
+        self.stdout.write("Authenticating with Box via CCG...")
         try:
-            if dev_token:
-                self.stdout.write("Using developer token...")
-                auth = OAuth2(
-                    client_id="",
-                    client_secret="",
-                    access_token=dev_token,
-                )
-                client = Client(auth)
-            else:
-                client_id = getattr(settings, "BOX_CLIENT_ID", "")
-                client_secret = getattr(settings, "BOX_CLIENT_SECRET", "")
-                enterprise_id = getattr(settings, "BOX_ENTERPRISE_ID", "")
-
-                if not all([client_id, client_secret, enterprise_id]):
-                    raise CommandError(
-                        "Box API credentials not configured. Set "
-                        "BOX_DEVELOPER_TOKEN (for testing) or "
-                        "BOX_CLIENT_ID, BOX_CLIENT_SECRET, and "
-                        "BOX_ENTERPRISE_ID (for production)."
-                    )
-
-                auth = CCGAuth(
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    enterprise_id=enterprise_id,
-                )
-                client = Client(auth)
-
-            # Verify auth works
+            auth = CCGAuth(
+                client_id=client_id,
+                client_secret=client_secret,
+                enterprise_id=enterprise_id,
+            )
+            client = Client(auth)
             user = client.user().get()
             self.stdout.write(f"Authenticated as {user.name} ({user.login})")
         except BoxAPIException as e:
