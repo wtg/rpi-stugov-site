@@ -42,6 +42,96 @@ from wagtail.models import Orderable, Page
 from wagtail.search import index
 
 
+BOX_FILE_TYPE_CHOICES = [
+    ("minutes", "Meeting Minutes"),
+    ("agenda", "Agenda"),
+    ("motion", "Motion"),
+    ("constitution", "Constitution"),
+    ("bylaws", "Bylaws"),
+    ("resolution", "Resolution"),
+    ("report", "Report"),
+    ("budget", "Budget"),
+    ("other", "Other"),
+]
+
+
+class BoxFileCache(models.Model):
+    """
+    Cached metadata for a file in the Box public records folder.
+
+    Populated by the sync_box_records management command. This model is
+    the read-side cache — Box is the source of truth. The sync command
+    does a full reconciliation: creates new entries, updates changed ones,
+    and deletes entries for files that no longer exist in Box.
+
+    The record_type is inferred from the filename during sync (e.g. a file
+    named "Senate Minutes 2025-03-15.pdf" → type "minutes"). If the
+    filename doesn't match any known type, it defaults to "other".
+    """
+
+    box_file_id = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Box's unique file ID.",
+    )
+    name = models.CharField(
+        max_length=500,
+        help_text="Filename as it appears in Box.",
+    )
+    record_type = models.CharField(
+        max_length=20,
+        choices=BOX_FILE_TYPE_CHOICES,
+        default="other",
+    )
+    box_folder_path = models.CharField(
+        max_length=1000,
+        blank=True,
+        help_text="Path of parent folders within Box (e.g. 'Senate/Minutes').",
+    )
+    shared_link = models.URLField(
+        blank=True,
+        help_text="Box shared link URL for direct access.",
+    )
+    size = models.BigIntegerField(
+        default=0,
+        help_text="File size in bytes.",
+    )
+    modified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last modified timestamp from Box.",
+    )
+    synced_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this cache entry was last updated by sync.",
+    )
+
+    class Meta:
+        verbose_name = "Box File (cached)"
+        verbose_name_plural = "Box Files (cached)"
+        ordering = ["-modified_at"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def extension(self):
+        """Return the file extension (lowercase, without dot)."""
+        if "." in self.name:
+            return self.name.rsplit(".", 1)[-1].lower()
+        return ""
+
+    @property
+    def size_display(self):
+        """Human-readable file size."""
+        if self.size < 1024:
+            return f"{self.size} B"
+        elif self.size < 1024 * 1024:
+            return f"{self.size / 1024:.1f} KB"
+        else:
+            return f"{self.size / (1024 * 1024):.1f} MB"
+
+
 RECORD_TYPE_CHOICES = [
     ("minutes", "Meeting Minutes"),
     ("constitution", "Constitution"),
@@ -90,42 +180,50 @@ class RecordIndexPage(Page):
 
     def get_context(self, request, *args, **kwargs):
         """
-        Build the filtered record listing for the template.
+        Build the record listing from the Box file cache.
 
         Query parameters:
-          ?type=minutes     -> filter by record type
-          ?year=2025-2026   -> filter by academic year
+          ?type=minutes       -> filter by inferred record type
+          ?folder=Senate      -> filter by Box folder path
+          ?q=search+terms     -> search filenames
 
-        The template receives 'records', 'record_types' (for the filter
-        dropdown), and 'active_type'/'active_year' (to highlight the
-        current filter selection).
+        The listing is driven by BoxFileCache (synced from Box via the
+        sync_box_records management command). RecordPage is kept in the
+        codebase but phased out of the UI — Box is the source of truth.
         """
         context = super().get_context(request, *args, **kwargs)
-        records = RecordPage.objects.live().descendant_of(self)
+        files = BoxFileCache.objects.all()
 
-        # Apply filters from query params
+        # Apply filters
         record_type = request.GET.get("type")
         if record_type:
-            records = records.filter(record_type=record_type)
+            files = files.filter(record_type=record_type)
 
-        year = request.GET.get("year")
-        if year:
-            records = records.filter(academic_year=year)
+        folder = request.GET.get("folder")
+        if folder:
+            files = files.filter(box_folder_path__icontains=folder)
 
-        context["records"] = records.order_by("-date_published")
-        context["record_types"] = RECORD_TYPE_CHOICES
+        query = request.GET.get("q", "").strip()
+        if query:
+            files = files.filter(name__icontains=query)
+
+        context["box_files"] = files.order_by("-modified_at")
+        context["file_types"] = BOX_FILE_TYPE_CHOICES
         context["active_type"] = record_type
-        context["active_year"] = year
+        context["active_folder"] = folder
+        context["search_query"] = query
 
-        # Build a list of unique academic years for the year filter dropdown
-        context["available_years"] = (
-            RecordPage.objects.live()
-            .descendant_of(self)
-            .exclude(academic_year="")
-            .values_list("academic_year", flat=True)
+        # Unique folder paths for the folder filter dropdown
+        context["available_folders"] = (
+            BoxFileCache.objects.exclude(box_folder_path="")
+            .values_list("box_folder_path", flat=True)
             .distinct()
-            .order_by("-academic_year")
+            .order_by("box_folder_path")
         )
+
+        # Last sync timestamp for display
+        latest = BoxFileCache.objects.order_by("-synced_at").first()
+        context["last_synced"] = latest.synced_at if latest else None
 
         return context
 

@@ -207,3 +207,12 @@ WAGTAILADMIN_BASE_URL = "http://example.com"
 # if untrusted users are allowed to upload files -
 # see https://docs.wagtail.org/en/stable/advanced_topics/deploying.html#user-uploaded-files
 WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'txt', 'xlsx', 'zip']
+
+
+# Box API settings (for syncing public records)
+# Create a Box Custom App with Client Credentials Grant (CCG) auth,
+# then authorize it in the Box admin console.
+BOX_CLIENT_ID = os.environ.get("BOX_CLIENT_ID", "")
+BOX_CLIENT_SECRET = os.environ.get("BOX_CLIENT_SECRET", "")
+BOX_ENTERPRISE_ID = os.environ.get("BOX_ENTERPRISE_ID", "")
+BOX_RECORDS_FOLDER_ID = os.environ.get("BOX_RECORDS_FOLDER_ID", "47634049782")
