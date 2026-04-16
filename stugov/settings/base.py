@@ -210,10 +210,8 @@ WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'tx
 
 
 # Box API settings (for syncing public records)
-# For testing: set BOX_DEVELOPER_TOKEN (expires every 60 minutes).
-# For production: create a Box Custom App with CCG auth and set
-# BOX_CLIENT_ID, BOX_CLIENT_SECRET, and BOX_ENTERPRISE_ID.
-BOX_DEVELOPER_TOKEN = os.environ.get("BOX_DEVELOPER_TOKEN", "")
+# Create a Box Custom App with Client Credentials Grant (CCG) auth,
+# then have a Box admin authorize it in Admin Console → Apps → Custom Apps.
 BOX_CLIENT_ID = os.environ.get("BOX_CLIENT_ID", "")
 BOX_CLIENT_SECRET = os.environ.get("BOX_CLIENT_SECRET", "")
 BOX_ENTERPRISE_ID = os.environ.get("BOX_ENTERPRISE_ID", "")
