@@ -21,6 +21,8 @@ Key design decisions:
     can reorder via drag-and-drop.
 """
 
+import datetime
+
 from django.db import models
 
 from modelcluster.fields import ParentalKey
@@ -132,13 +134,18 @@ class HomePage(Page):
         from django.utils import timezone
 
         today = timezone.now().date()
-        context["upcoming_events"] = (
-            EventPage.objects.live()
-            .filter(
+        # Candidate events: non-recurring with future start, or recurring
+        # with a recurrence window that hasn't fully ended. We materialize
+        # and sort in Python because the correct ordering for recurring
+        # events is by next_occurrence, which can't be expressed in SQL.
+        candidates = list(
+            EventPage.objects.live().filter(
                 Q(recurrence_frequency="none", start_date__gte=today)
                 | Q(~Q(recurrence_frequency="none"), recurrence_end_date__gte=today)
             )
-            .order_by("start_date", "start_time")[:5]
+        )
+        context["upcoming_events"] = _upcoming_by_next_occurrence(
+            candidates, today, limit=5
         )
         context["branch_pages"] = (
             BranchPage.objects.live()
@@ -172,19 +179,53 @@ class AltHomePage(HomePage):
         from django.utils import timezone
 
         today = timezone.now().date()
-        context["upcoming_events"] = (
-            EventPage.objects.live()
-            .filter(
+        candidates = list(
+            EventPage.objects.live().filter(
                 Q(recurrence_frequency="none", start_date__gte=today)
                 | Q(~Q(recurrence_frequency="none"), recurrence_end_date__gte=today)
             )
-            .order_by("start_date", "start_time")[:5]
+        )
+        context["upcoming_events"] = _upcoming_by_next_occurrence(
+            candidates, today, limit=5
         )
         context["branch_pages"] = (
             BranchPage.objects.live()
             .order_by("path")
         )
         return context
+
+
+def _upcoming_by_next_occurrence(events, today, limit=5):
+    """
+    Sort a list of EventPage instances by their true next-occurrence date.
+
+    For non-recurring events, that's just start_date. For recurring events,
+    it's the next occurrence on or after `today` (computed by
+    EventPage.next_occurrence), which can be far later than start_date if
+    the event started in the past and recurs into the future.
+
+    Events with no upcoming occurrence are dropped. The resulting list is
+    sliced to `limit`. Each event is annotated with `display_date` and
+    `next_occurrence_date` for template use — `display_date` is already a
+    property on EventPage, but we also cache it here to avoid repeating
+    the computation in the template.
+    """
+    enriched = []
+    for event in events:
+        next_date = (
+            event.next_occurrence(after=today)
+            if event.is_recurring
+            else event.start_date
+        )
+        if next_date is None or next_date < today:
+            continue
+        # Cache the computed date on the instance so the template can
+        # read it without re-running next_occurrence().
+        event._display_date = next_date
+        enriched.append((next_date, event.start_time or datetime.time.min, event))
+    enriched.sort(key=lambda tup: (tup[0], tup[1]))
+    return [event for _, _, event in enriched[:limit]]
+
 
 class HomePageQuickLink(Orderable):
     """
