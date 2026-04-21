@@ -107,6 +107,67 @@ ROLE_CHOICES = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Membership hierarchy
+# ---------------------------------------------------------------------------
+# Defines how MemberListingPage groups member placements into sections.
+# The presiding officer appears first, followed by officers of the body,
+# then committee chairs, then voting members. Each section preserves the
+# admin-configured sort order within the tier. If a member holds roles
+# across multiple tiers, their card is shown once per tier (duplicated).
+
+HIERARCHY_TIERS = [
+    {
+        "key": "presiding",
+        "label": "Presiding Officer",
+        "roles": [
+            "grand_marshal",
+            "president_union",
+            "council_president",
+            "chief_justice",
+        ],
+    },
+    {
+        "key": "officers",
+        "label": "Officers",
+        "roles": [
+            "vice_grand_marshal",
+            "vice_president",
+            "secretary",
+            "treasurer",
+            "parliamentarian",
+            "liaison",
+        ],
+    },
+    {
+        "key": "chairs",
+        "label": "Committee Chairs",
+        "roles": [
+            "chair",
+            "vice_chair",
+        ],
+    },
+    {
+        "key": "members",
+        "label": "Members",
+        "roles": [
+            "senator",
+            "representative",
+            "class_president",
+            "justice",
+            "member",
+        ],
+    },
+]
+
+# Reverse lookup: role_key -> tier_key
+ROLE_TO_TIER = {
+    role: tier["key"] for tier in HIERARCHY_TIERS for role in tier["roles"]
+}
+# Default tier for any role not explicitly categorized
+DEFAULT_TIER = "members"
+
+
 # ===========================================================================
 # SNIPPET: MemberProfile
 # ===========================================================================
@@ -339,10 +400,20 @@ class MemberListingPage(Page):
     """
     'Meet the Senate' / 'Meet the E-Board' style page.
 
-    Displays a grid of member cards. The members are managed via InlinePanel
-    which renders the BranchMemberPlacement through-model as an inline
-    editor in the Wagtail admin — admins can add/remove/reorder members
-    right on this page's edit screen.
+    Displays members grouped into tiers by role hierarchy:
+      1. Presiding Officer (GM, Union President, Council President, etc.)
+      2. Officers of the Body (VPs, Secretary, Treasurer, etc.)
+      3. Committee Chairs
+      4. Voting Members
+
+    The members are managed via InlinePanel which renders the
+    BranchMemberPlacement through-model as an inline editor in the Wagtail
+    admin — admins can add/remove/reorder members right on this page's
+    edit screen. The grouping happens at render time in get_member_hierarchy().
+
+    Members with roles spanning multiple tiers appear once per tier. For
+    example, a Grand Marshal who also chairs a committee shows up in both
+    "Presiding Officer" and "Committee Chairs" sections.
     """
 
     intro = RichTextField(
@@ -360,6 +431,78 @@ class MemberListingPage(Page):
 
     class Meta:
         verbose_name = "Member Listing Page"
+
+    def get_member_hierarchy(self):
+        """
+        Group active member placements into hierarchy tiers.
+
+        Returns a list of non-empty tiers in hierarchy order:
+            [
+                {"key": "presiding", "label": "Presiding Officer", "entries": [...]},
+                {"key": "officers", "label": "Officers", "entries": [...]},
+                ...
+            ]
+
+        Each entry is a dict with:
+            "placement":    the BranchMemberPlacement instance
+            "tier_roles":   the subset of the member's roles that belong
+                            to this tier (used for display)
+            "display_role": the role text to show on the card for this tier
+
+        Members whose roles span multiple tiers appear once per tier.
+        Placements with no roles fall into the "members" tier by default.
+        The admin-configured sort order (from InlinePanel drag-and-drop)
+        is preserved within each tier.
+        """
+        tiers = {
+            t["key"]: {"label": t["label"], "entries": []}
+            for t in HIERARCHY_TIERS
+        }
+        role_map = dict(ROLE_CHOICES)
+
+        for placement in self.member_placements.select_related("member").all():
+            if not placement.member.is_active:
+                continue
+
+            roles = placement.roles or []
+
+            # Bucket the placement's roles by tier
+            tier_roles = {}
+            for role in roles:
+                tier_key = ROLE_TO_TIER.get(role, DEFAULT_TIER)
+                tier_roles.setdefault(tier_key, []).append(role)
+
+            # No roles set → fall back to default tier
+            if not tier_roles:
+                tier_roles[DEFAULT_TIER] = []
+
+            # Emit one entry per tier the placement belongs to
+            for tier_key, roles_in_tier in tier_roles.items():
+                if placement.role_title_override:
+                    display_role = placement.role_title_override
+                elif roles_in_tier:
+                    display_role = ", ".join(
+                        role_map.get(r, r) for r in roles_in_tier
+                    )
+                else:
+                    display_role = ""
+
+                tiers[tier_key]["entries"].append({
+                    "placement": placement,
+                    "tier_roles": roles_in_tier,
+                    "display_role": display_role,
+                })
+
+        # Return non-empty tiers in hierarchy order
+        return [
+            {
+                "key": t["key"],
+                "label": tiers[t["key"]]["label"],
+                "entries": tiers[t["key"]]["entries"],
+            }
+            for t in HIERARCHY_TIERS
+            if tiers[t["key"]]["entries"]
+        ]
 
 
 # ===========================================================================

@@ -4,17 +4,71 @@
 {# Expected context variables:                                        #}
 {#   - placement: a BranchMemberPlacement, CommitteeMemberPlacement,  #}
 {#     or ClassCouncilMemberPlacement instance                        #}
-{#                                                                     #}
-{# The placement object has:                                          #}
-{#   - .member: the MemberProfile snippet                             #}
-{#   - .display_role or .committee_role or .role: the role text       #}
+{#   - display_role_override (optional): role text to show instead of #}
+{#     the placement's default display_role. Used by hierarchy views  #}
+{#     to show only the tier-specific role when a member spans tiers. #}
+{#   - featured (optional, default False): if True, render a larger   #}
+{#     horizontal card (used for presiding officers).                 #}
 {#                                                                     #}
 {# Usage:                                                             #}
 {#   {% include "includes/member_card.html" with placement=p %}       #}
+{#   {% include "includes/member_card.html" with placement=p          #}
+{#       display_role_override="Grand Marshal" featured=True %}       #}
 {# ================================================================== #}
 
 {% load wagtailimages_tags %}
 
+{% if featured %}
+{# -------- Featured layout (presiding officer) -------- #}
+<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow
+            flex flex-col sm:flex-row">
+    {# Photo column — larger, fills half on wider screens #}
+    {% if placement.member.photo %}
+    <div class="sm:w-48 sm:flex-shrink-0 aspect-square sm:aspect-auto overflow-hidden">
+        {% image placement.member.photo fill-400x400 class="w-full h-full object-cover" %}
+    </div>
+    {% else %}
+    <div class="sm:w-48 sm:flex-shrink-0 aspect-square sm:aspect-auto bg-gray-200 flex items-center justify-center">
+        <svg class="h-24 w-24 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+    </div>
+    {% endif %}
+
+    <div class="p-6 flex-grow">
+        {# Role shown ABOVE name as an eyebrow label for the featured card #}
+        {% if display_role_override %}
+        <p class="text-sm text-rpi-red font-semibold uppercase tracking-wide mb-1">
+            {{ display_role_override }}
+        </p>
+        {% elif placement.display_role %}
+        <p class="text-sm text-rpi-red font-semibold uppercase tracking-wide mb-1">
+            {{ placement.display_role }}
+        </p>
+        {% endif %}
+
+        <h3 class="text-2xl font-bold text-gray-900">
+            {{ placement.member.first_name }} {{ placement.member.last_name }}
+        </h3>
+
+        {% if placement.member.class_year or placement.member.major %}
+        <p class="text-sm text-gray-500 mt-1">
+            {% if placement.member.class_year %}Class of {{ placement.member.class_year }}{% endif %}
+            {% if placement.member.class_year and placement.member.major %} &middot; {% endif %}
+            {% if placement.member.major %}{{ placement.member.major }}{% endif %}
+        </p>
+        {% endif %}
+
+        {% if placement.member.bio %}
+        <div class="text-sm text-gray-600 mt-3">
+            {{ placement.member.bio|safe }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% else %}
+{# -------- Standard grid card -------- #}
 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
     {# Member photo (if uploaded) #}
     {% if placement.member.photo %}
@@ -38,8 +92,11 @@
             {{ placement.member.first_name }} {{ placement.member.last_name }}
         </h3>
 
-        {# Display role — each placement type exposes the role slightly differently #}
-        {% if placement.display_role %}
+        {# Role — prefer the tier-specific override passed by hierarchy   #}
+        {# views, then fall back to each placement type's native field.   #}
+        {% if display_role_override %}
+        <p class="text-sm text-rpi-red font-medium mt-1">{{ display_role_override }}</p>
+        {% elif placement.display_role %}
         <p class="text-sm text-rpi-red font-medium mt-1">{{ placement.display_role }}</p>
         {% elif placement.committee_role %}
         <p class="text-sm text-rpi-red font-medium mt-1">{{ placement.get_committee_role_display }}</p>
@@ -64,3 +121,4 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
