@@ -557,6 +557,20 @@ class MemberListingPage(Page):
                     "display_role": display_role,
                 })
 
+        # Sort each tier's entries alphabetically by display_role (ascending,
+        # case-insensitive). This surfaces e.g. "Academic Affairs Chair"
+        # before "Student Life Chair" within the Committee Chairs section.
+        # Ties on display_role fall back to member last name then first name
+        # for stable ordering.
+        for tier_data in tiers.values():
+            tier_data["entries"].sort(
+                key=lambda e: (
+                    (e["display_role"] or "").lower(),
+                    e["placement"].member.last_name.lower(),
+                    e["placement"].member.first_name.lower(),
+                )
+            )
+
         # Return non-empty tiers in hierarchy order
         return [
             {
