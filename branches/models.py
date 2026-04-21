@@ -378,15 +378,74 @@ class BranchMemberPlacement(Orderable):
     role_title_override = models.CharField(
         max_length=100,
         blank=True,
-        help_text="Custom title that overrides the role dropdown, e.g. "
-                  "'President of the Senate' instead of just 'President'.",
+        verbose_name="Default title override",
+        help_text="Fallback custom title used in any tier where no "
+                  "tier-specific override is set. Leave blank to show "
+                  "the role name from the dropdown.",
+    )
+    # -- Per-tier title overrides --
+    # When a member holds roles across multiple tiers (e.g. Committee Chair
+    # AND Senator), each tier section can display a different custom title.
+    # Example: a member with roles ["chair", "senator"] can show
+    # "Academic Affairs Chair" in the Committee Chairs section and
+    # "Class of 2027 Senator" in the Members section.
+    presiding_title_override = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Presiding Officer title override",
+        help_text="Title shown in the Presiding Officer section only.",
+    )
+    officers_title_override = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Officers title override",
+        help_text="Title shown in the Officers section only.",
+    )
+    chairs_title_override = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Committee Chairs title override",
+        help_text="Title shown in the Committee Chairs section only, "
+                  "e.g. 'Academic Affairs Chair'.",
+    )
+    members_title_override = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Members title override",
+        help_text="Title shown in the Members section only, "
+                  "e.g. 'Class of 2027 Senator'.",
     )
 
     panels = [
         FieldPanel("member"),
         FieldPanel("roles"),
         FieldPanel("role_title_override"),
+        MultiFieldPanel(
+            [
+                FieldPanel("presiding_title_override"),
+                FieldPanel("officers_title_override"),
+                FieldPanel("chairs_title_override"),
+                FieldPanel("members_title_override"),
+            ],
+            heading="Per-section title overrides (advanced)",
+            help_text="Only needed if this member holds roles in multiple "
+                      "sections and should display a different title in "
+                      "each. Per-section overrides take priority over the "
+                      "default title override above.",
+            classname="collapsed",
+        ),
     ]
+
+    def title_override_for_tier(self, tier_key):
+        """
+        Return the tier-specific override if set, else the general override,
+        else empty string.
+        """
+        tier_field = f"{tier_key}_title_override"
+        tier_value = getattr(self, tier_field, "") or ""
+        if tier_value:
+            return tier_value
+        return self.role_title_override or ""
 
     @property
     def display_role(self):
@@ -477,10 +536,14 @@ class MemberListingPage(Page):
             if not tier_roles:
                 tier_roles[DEFAULT_TIER] = []
 
-            # Emit one entry per tier the placement belongs to
+            # Emit one entry per tier the placement belongs to. Display
+            # priority within each tier: tier-specific override first,
+            # then the general role_title_override, then the joined role
+            # names from the dropdown.
             for tier_key, roles_in_tier in tier_roles.items():
-                if placement.role_title_override:
-                    display_role = placement.role_title_override
+                tier_override = placement.title_override_for_tier(tier_key)
+                if tier_override:
+                    display_role = tier_override
                 elif roles_in_tier:
                     display_role = ", ".join(
                         role_map.get(r, r) for r in roles_in_tier
