@@ -12,14 +12,16 @@
 
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
     <div class="flex items-start gap-4">
-        {# Date badge — visual date indicator on the left #}
+        {# Date badge — visual date indicator on the left.                  #}
+        {# For recurring events, display_date returns the next occurrence   #}
+        {# on or after today rather than the original start_date.           #}
         <div class="flex-shrink-0 text-center bg-rpi-red text-white rounded-lg p-2 min-w-[3.5rem]">
             <div class="text-xs font-medium uppercase">
                 {# date filter format: "M" = abbreviated month (Jan, Feb, etc.) #}
-                {{ event.start_date|date:"M" }}
+                {{ event.display_date|date:"M" }}
             </div>
             <div class="text-2xl font-bold leading-tight">
-                {{ event.start_date|date:"d" }}
+                {{ event.display_date|date:"d" }}
             </div>
         </div>
 

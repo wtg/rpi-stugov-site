@@ -106,8 +106,12 @@ class EventIndexPage(RoutablePageMixin, Page):
         all_events = EventPage.objects.live().descendant_of(self)
 
         # Upcoming: non-recurring with future start_date OR recurring
-        # events whose recurrence range extends past today
-        context["upcoming_events"] = (
+        # events whose recurrence range extends past today. We must sort
+        # by the real next-occurrence date in Python because a weekly
+        # event that started months ago still has future occurrences —
+        # ordering by SQL start_date would put it ahead of genuinely
+        # sooner one-off events.
+        upcoming_candidates = list(
             all_events.filter(
                 models.Q(recurrence_frequency="none", start_date__gte=today)
                 | models.Q(
@@ -115,8 +119,22 @@ class EventIndexPage(RoutablePageMixin, Page):
                     recurrence_end_date__gte=today,
                 )
             )
-            .order_by("start_date", "start_time")
         )
+        enriched = []
+        for event in upcoming_candidates:
+            next_date = (
+                event.next_occurrence(after=today)
+                if event.is_recurring
+                else event.start_date
+            )
+            if next_date is None or next_date < today:
+                continue
+            event._display_date = next_date
+            enriched.append(
+                (next_date, event.start_time or datetime.time.min, event)
+            )
+        enriched.sort(key=lambda tup: (tup[0], tup[1]))
+        context["upcoming_events"] = [event for _, _, event in enriched]
 
         # Past: non-recurring events in the past, and recurring events
         # whose recurrence has fully ended
@@ -351,6 +369,31 @@ class EventPage(Page):
     def is_recurring(self):
         """Convenience check for templates and code."""
         return self.recurrence_frequency != "none"
+
+    @property
+    def display_date(self):
+        """
+        The date an event listing should show for this event.
+
+        For non-recurring events this is simply start_date. For recurring
+        events it's the next occurrence on or after today, so e.g. a weekly
+        meeting originally scheduled in February still shows "this week"
+        on a homepage rendered in April. Falls back to start_date if the
+        recurrence has no upcoming occurrence (shouldn't happen for events
+        filtered into an upcoming list, but guards against None).
+
+        Views that sort events by next-occurrence can pre-compute the
+        value and stash it on the instance as ``_display_date`` to avoid
+        re-running next_occurrence() for each template render.
+        """
+        cached = getattr(self, "_display_date", None)
+        if cached is not None:
+            return cached
+        if self.is_recurring:
+            nxt = self.next_occurrence()
+            if nxt is not None:
+                return nxt
+        return self.start_date
 
     def occurrences(self, year, month):
         """
