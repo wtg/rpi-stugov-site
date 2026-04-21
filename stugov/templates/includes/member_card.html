@@ -10,10 +10,9 @@
 {#   - featured (optional, default False): if True, render a larger   #}
 {#     horizontal card (used for presiding officers).                 #}
 {#                                                                     #}
-{# Usage:                                                             #}
-{#   {% include "includes/member_card.html" with placement=p %}       #}
-{#   {% include "includes/member_card.html" with placement=p          #}
-{#       display_role_override="Grand Marshal" featured=True %}       #}
+{# The non-featured variant is a minimal photo-above-name layout with #}
+{# no card chrome (no bg/shadow), matching the ASUC/RPI-Senate style. #}
+{# The featured variant keeps the full card with bio.                  #}
 {# ================================================================== #}
 
 {% load wagtailimages_tags %}
@@ -22,32 +21,32 @@
 {# -------- Featured layout (presiding officer) -------- #}
 <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow
             flex flex-col sm:flex-row">
-    {# Photo column — larger, fills half on wider screens #}
+    {# Photo column #}
     {% if placement.member.photo %}
-    <div class="sm:w-48 sm:flex-shrink-0 aspect-square sm:aspect-auto overflow-hidden">
+    <div class="sm:w-44 sm:flex-shrink-0 aspect-square sm:aspect-auto overflow-hidden">
         {% image placement.member.photo fill-400x400 class="w-full h-full object-cover" %}
     </div>
     {% else %}
-    <div class="sm:w-48 sm:flex-shrink-0 aspect-square sm:aspect-auto bg-gray-200 flex items-center justify-center">
-        <svg class="h-24 w-24 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+    <div class="sm:w-44 sm:flex-shrink-0 aspect-square sm:aspect-auto bg-gray-200 flex items-center justify-center">
+        <svg class="h-20 w-20 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
     </div>
     {% endif %}
 
-    <div class="p-6 flex-grow">
+    <div class="p-5 flex-grow">
         {# Role shown ABOVE name as an eyebrow label for the featured card #}
         {% if display_role_override %}
-        <p class="text-sm text-rpi-red font-semibold uppercase tracking-wide mb-1">
+        <p class="text-xs text-rpi-red font-semibold uppercase tracking-wide mb-1">
             {{ display_role_override }}
         </p>
         {% elif placement.display_role %}
-        <p class="text-sm text-rpi-red font-semibold uppercase tracking-wide mb-1">
+        <p class="text-xs text-rpi-red font-semibold uppercase tracking-wide mb-1">
             {{ placement.display_role }}
         </p>
         {% endif %}
 
-        <h3 class="text-2xl font-bold text-gray-900">
+        <h3 class="text-xl font-bold text-gray-900">
             {{ placement.member.first_name }} {{ placement.member.last_name }}
         </h3>
 
@@ -60,7 +59,7 @@
         {% endif %}
 
         {% if placement.member.bio %}
-        <div class="text-sm text-gray-600 mt-3">
+        <div class="text-sm text-gray-600 mt-2 line-clamp-4">
             {{ placement.member.bio|safe }}
         </div>
         {% endif %}
@@ -68,56 +67,41 @@
 </div>
 
 {% else %}
-{# -------- Standard grid card -------- #}
-<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    {# Member photo (if uploaded) #}
+{# -------- Compact grid card (minimal, ASUC-style) -------- #}
+<div class="text-center">
+    {# Member photo — rounded, square aspect #}
     {% if placement.member.photo %}
-    <div class="aspect-square overflow-hidden">
-        {# wagtailimages_tags provides the {% image %} tag which handles    #}
-        {# automatic resizing, format conversion, and responsive srcset.    #}
-        {# "fill-300x300" crops the image to a 300x300 square.             #}
+    <div class="aspect-square overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow">
         {% image placement.member.photo fill-300x300 class="w-full h-full object-cover" %}
     </div>
     {% else %}
-    {# Placeholder when no photo is uploaded #}
-    <div class="aspect-square bg-gray-200 flex items-center justify-center">
-        <svg class="h-20 w-20 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+    <div class="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+        <svg class="h-14 w-14 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
     </div>
     {% endif %}
 
-    <div class="p-4 text-center">
-        <h3 class="font-semibold text-gray-900">
+    <div class="mt-3 px-1">
+        <h3 class="text-sm font-semibold text-gray-900 leading-tight">
             {{ placement.member.first_name }} {{ placement.member.last_name }}
         </h3>
 
         {# Role — prefer the tier-specific override passed by hierarchy   #}
         {# views, then fall back to each placement type's native field.   #}
         {% if display_role_override %}
-        <p class="text-sm text-rpi-red font-medium mt-1">{{ display_role_override }}</p>
+        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ display_role_override }}</p>
         {% elif placement.display_role %}
-        <p class="text-sm text-rpi-red font-medium mt-1">{{ placement.display_role }}</p>
+        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ placement.display_role }}</p>
         {% elif placement.committee_role %}
-        <p class="text-sm text-rpi-red font-medium mt-1">{{ placement.get_committee_role_display }}</p>
+        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ placement.get_committee_role_display }}</p>
         {% elif placement.role %}
-        <p class="text-sm text-rpi-red font-medium mt-1">{{ placement.role }}</p>
+        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ placement.role }}</p>
         {% endif %}
 
-        {# Class year and major #}
-        {% if placement.member.class_year or placement.member.major %}
-        <p class="text-xs text-gray-500 mt-1">
-            {% if placement.member.class_year %}Class of {{ placement.member.class_year }}{% endif %}
-            {% if placement.member.class_year and placement.member.major %} &middot; {% endif %}
-            {% if placement.member.major %}{{ placement.member.major }}{% endif %}
-        </p>
-        {% endif %}
-
-        {# Bio (collapsed by default to keep the grid tidy) #}
-        {% if placement.member.bio %}
-        <div class="text-sm text-gray-600 mt-2 line-clamp-3">
-            {{ placement.member.bio|safe }}
-        </div>
+        {# Class year (compact — skip major to keep cards small) #}
+        {% if placement.member.class_year %}
+        <p class="text-xs text-gray-400 mt-0.5">'{{ placement.member.class_year|slice:"2:" }}</p>
         {% endif %}
     </div>
 </div>

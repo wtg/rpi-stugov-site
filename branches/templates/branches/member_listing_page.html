@@ -7,11 +7,8 @@
 {#   3. Committee Chairs                                              #}
 {#   4. Voting Members                                                #}
 {#                                                                     #}
-{# Grouping is done by MemberListingPage.get_member_hierarchy() which #}
-{# returns a list of non-empty tiers, each with a list of entry dicts #}
-{# containing a placement + the role text to display for that tier.   #}
-{#                                                                     #}
-{# Members whose roles span multiple tiers appear in each tier.       #}
+{# Uses flex-wrap + justify-center so partially-filled rows stay      #}
+{# centered (plain grid would left-align the last row).               #}
 {# ================================================================== #}
 
 {% extends "base.html" %}
@@ -20,18 +17,18 @@
 {% block body_class %}template-memberlistingpage{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     {# Breadcrumb: Branch > This Page #}
-    <nav class="text-sm text-gray-500 mb-4">
+    <nav class="text-sm text-gray-500 mb-4 text-center">
         <a href="{% pageurl page.get_parent %}" class="hover:text-rpi-red">{{ page.get_parent.title }}</a>
         <span class="mx-2">/</span>
         <span class="text-gray-900">{{ page.title }}</span>
     </nav>
 
-    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ page.title }}</h1>
+    <h1 class="text-4xl font-bold text-gray-900 mb-4 text-center">{{ page.title }}</h1>
 
     {% if page.intro %}
-    <div class="prose prose-lg max-w-none mb-8">
+    <div class="prose prose-lg max-w-2xl mx-auto mb-10 text-center">
         {{ page.intro|richtext }}
     </div>
     {% endif %}
@@ -39,33 +36,37 @@
     {% with hierarchy=page.get_member_hierarchy %}
     {% if hierarchy %}
         {% for tier in hierarchy %}
-        <section class="mb-12">
-            {# Tier heading with a short divider accent #}
-            <div class="flex items-center gap-3 mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">{{ tier.label }}</h2>
-                <div class="flex-grow h-px bg-gray-200"></div>
+        <section class="mb-14">
+            {# Tier heading — centered, with a short accent underline #}
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 inline-block">{{ tier.label }}</h2>
+                <div class="w-16 h-0.5 bg-rpi-red mx-auto mt-2"></div>
             </div>
 
             {% if tier.key == "presiding" %}
-                {# Presiding officer tier — featured layout.               #}
-                {# Typically one person, but if multiple, they share the row. #}
-                <div class="grid grid-cols-1 {% if tier.entries|length > 1 %}sm:grid-cols-2{% endif %} gap-6 max-w-3xl">
+                {# Presiding officer — featured card, centered #}
+                <div class="flex flex-wrap justify-center gap-8 max-w-3xl mx-auto">
                     {% for entry in tier.entries %}
-                        {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=True %}
+                        <div class="w-full sm:w-[420px]">
+                            {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=True %}
+                        </div>
                     {% endfor %}
                 </div>
             {% else %}
-                {# Standard grid for officers / chairs / members #}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {# Compact grid — flex-wrap keeps partial rows centered.   #}
+                {# Fixed card widths let rows wrap naturally at any count. #}
+                <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
                     {% for entry in tier.entries %}
-                        {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=False %}
+                        <div class="w-36 sm:w-40 md:w-44">
+                            {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=False %}
+                        </div>
                     {% endfor %}
                 </div>
             {% endif %}
         </section>
         {% endfor %}
     {% else %}
-        <p class="text-gray-500">No members listed yet.</p>
+        <p class="text-gray-500 text-center">No members listed yet.</p>
     {% endif %}
     {% endwith %}
 </div>

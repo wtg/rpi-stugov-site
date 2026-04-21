@@ -373,6 +373,7 @@ class BranchMemberPlacement(Orderable):
         choices=ROLE_CHOICES,
         default=list,
         help_text="One or more roles this member holds on this page.",
+        
     )
     role_title_override = models.CharField(
         max_length=100,
@@ -423,7 +424,7 @@ class MemberListingPage(Page):
 
     content_panels = Page.content_panels + [
         FieldPanel("intro"),
-        InlinePanel("member_placements", label="Members"),
+        InlinePanel("member_placements", label="Members", classname="collapsed"),
     ]
 
     parent_page_types = ["branches.BranchPage"]
