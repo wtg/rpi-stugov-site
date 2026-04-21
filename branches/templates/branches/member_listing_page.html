@@ -1,16 +1,21 @@
 {# ================================================================== #}
 {# MEMBER LISTING PAGE — "Meet the Senate" / "Meet the E-Board" etc.  #}
 {#                                                                     #}
-{# Displays a grid of member profile cards. Each card is rendered     #}
-{# by the includes/member_card.html partial.                          #}
+{# Displays members grouped by hierarchy tier:                        #}
+{#   1. Presiding Officer (featured, single large card)                #}
+{#   2. Officers of the Body                                          #}
+{#   3. Committee Chairs                                              #}
+{#   4. Voting Members                                                #}
 {#                                                                     #}
-{# page.member_placements is the InlinePanel relation defined on      #}
-{# MemberListingPage. Each placement has a .member (MemberProfile)    #}
-{# and a .display_role (the role text to show).                       #}
+{# Grouping is done by MemberListingPage.get_member_hierarchy() which #}
+{# returns a list of non-empty tiers, each with a list of entry dicts #}
+{# containing a placement + the role text to display for that tier.   #}
+{#                                                                     #}
+{# Members whose roles span multiple tiers appear in each tier.       #}
 {# ================================================================== #}
 
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load wagtailcore_tags wagtailimages_tags %}
 
 {% block body_class %}template-memberlistingpage{% endblock %}
 
@@ -31,19 +36,37 @@
     </div>
     {% endif %}
 
-    {# ---- Member Grid ---- #}
-    {# Responsive grid: 1 column on mobile, 2 on tablet, 3-4 on desktop #}
-    {% if page.member_placements.all %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {% for placement in page.member_placements.all %}
-            {# Only show active members (is_active=True) #}
-            {% if placement.member.is_active %}
-                {% include "includes/member_card.html" with placement=placement %}
+    {% with hierarchy=page.get_member_hierarchy %}
+    {% if hierarchy %}
+        {% for tier in hierarchy %}
+        <section class="mb-12">
+            {# Tier heading with a short divider accent #}
+            <div class="flex items-center gap-3 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">{{ tier.label }}</h2>
+                <div class="flex-grow h-px bg-gray-200"></div>
+            </div>
+
+            {% if tier.key == "presiding" %}
+                {# Presiding officer tier — featured layout.               #}
+                {# Typically one person, but if multiple, they share the row. #}
+                <div class="grid grid-cols-1 {% if tier.entries|length > 1 %}sm:grid-cols-2{% endif %} gap-6 max-w-3xl">
+                    {% for entry in tier.entries %}
+                        {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=True %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                {# Standard grid for officers / chairs / members #}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for entry in tier.entries %}
+                        {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=False %}
+                    {% endfor %}
+                </div>
             {% endif %}
+        </section>
         {% endfor %}
-    </div>
     {% else %}
-    <p class="text-gray-500">No members listed yet.</p>
+        <p class="text-gray-500">No members listed yet.</p>
     {% endif %}
+    {% endwith %}
 </div>
 {% endblock %}
