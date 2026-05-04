@@ -57,6 +57,8 @@ class FormField(AbstractFormField):
         related_name="form_fields",
     )
 
+    help_text = RichTextField(blank=True)
+
 
 class ComplaintFormPage(AbstractEmailForm):
     """
