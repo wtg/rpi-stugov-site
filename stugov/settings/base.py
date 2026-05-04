@@ -208,6 +208,14 @@ WAGTAILADMIN_BASE_URL = "https://sg.rpi.edu"
 # see https://docs.wagtail.org/en/stable/advanced_topics/deploying.html#user-uploaded-files
 WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'txt', 'xlsx', 'zip']
 
+# Allow HTML in form-field help_text. Required because forms_ext.FormField
+# overrides help_text to be a RichTextField — without this flag, Wagtail's
+# FormBuilder calls conditional_escape() on the stored rich text before it
+# reaches the template, and the <p>/<strong>/etc. tags render as literal
+# text instead of formatting.
+# Safe here because only Wagtail admins (not end users) author help_text.
+WAGTAILFORMS_HELP_TEXT_ALLOW_HTML = True
+
 
 # Box API settings (for syncing public records)
 # Create a Box Custom App with Client Credentials Grant (CCG) auth,
