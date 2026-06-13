@@ -1,4 +1,13 @@
 from .base import *
+import os
+from django.core.exceptions import ImproperlyConfigured
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("The DJANGO_SECRET_KEY environment variable is required in production!")
+
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 DEBUG = False
 
