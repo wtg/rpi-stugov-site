@@ -3,6 +3,7 @@
 *.log
 tmp/
 media/
+.env*
 
 *.py[cod]
 *.egg
