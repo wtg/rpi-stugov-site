@@ -16,7 +16,7 @@ import os
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR))
+DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
