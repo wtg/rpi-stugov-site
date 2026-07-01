@@ -48,7 +48,7 @@
                 <div class="flex flex-wrap justify-center gap-8 max-w-3xl mx-auto">
                     {% for entry in tier.entries %}
                         <div class="w-full sm:w-[420px]">
-                            {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=True %}
+                            {% include "includes/member_card.html" with placement=entry.placement roles=entry.roles featured=True %}
                         </div>
                     {% endfor %}
                 </div>
@@ -58,7 +58,7 @@
                 <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
                     {% for entry in tier.entries %}
                         <div class="w-36 sm:w-40 md:w-44">
-                            {% include "includes/member_card.html" with placement=entry.placement display_role_override=entry.display_role featured=False %}
+                            {% include "includes/member_card.html" with placement=entry.placement roles=entry.roles featured=False %}
                         </div>
                     {% endfor %}
                 </div>
