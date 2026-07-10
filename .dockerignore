@@ -1,3 +1,6 @@
+# Secrets — never bake into image
+.env*
+
 # Django project
 /media/
 /static/
