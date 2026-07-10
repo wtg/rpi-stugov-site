@@ -156,44 +156,6 @@ class HomePage(Page):
     class Meta:
         verbose_name = "Home Page"
 
-class AltHomePage(HomePage):
-    """
-    Alternate homepage layout for A/B testing on the staging server.
-
-    Inherits all fields from HomePage but overrides get_context() to
-    query branches and events globally rather than from child pages.
-    This is necessary because AltHomePage lives under Root as a sibling
-    of HomePage, so it doesn't have its own children — the BranchPages,
-    EventIndexPage, etc. all live under the original HomePage.
-    """
-
-    def get_context(self, request, *args, **kwargs):
-        # Skip HomePage.get_context() — go straight to Page.get_context()
-        # so we don't get the child_of(self) queries that return empty.
-        context = Page.get_context(self, request, *args, **kwargs)
-
-        from events.models import EventPage
-        from branches.models import BranchPage
-
-        from django.db.models import Q
-        from django.utils import timezone
-
-        today = timezone.now().date()
-        candidates = list(
-            EventPage.objects.live().filter(
-                Q(recurrence_frequency="none", start_date__gte=today)
-                | Q(~Q(recurrence_frequency="none"), recurrence_end_date__gte=today)
-            )
-        )
-        context["upcoming_events"] = _upcoming_by_next_occurrence(
-            candidates, today, limit=5
-        )
-        context["branch_pages"] = (
-            BranchPage.objects.live()
-            .order_by("path")
-        )
-        return context
-
 
 def _upcoming_by_next_occurrence(events, today, limit=5):
     """
