@@ -5,15 +5,21 @@ services:
     restart: always
     environment:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
-      DATA_DIR: ${DATA_DIR}
+      DATA_DIR: /app/data/
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS}
     volumes:
-      - ${DATA_DIR:-./data/}:/app/data/
+      - ${HOST_DATA_DIR:-./data/}:/app/data/
       - static_files:/app/static
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/')",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -29,7 +35,7 @@ services:
       - "8000:80"
     volumes:
       - static_files:/var/www/data/static/
-      - ${DATA_DIR:-./data/}/media/:/var/www/data/media/
+      - ${HOST_DATA_DIR:-./data/}/media/:/var/www/data/media/
 
 volumes:
   static_files:
