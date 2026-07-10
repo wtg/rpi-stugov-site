@@ -57,12 +57,6 @@
                 {% for block in page.body %}
                     {% if block.block_type == "heading" %}
                         <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">{{ block.value }}</h2>
-                    {% elif block.block_type == "info_cards" %}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-6 not-prose">
-                            {% for card in block.value %}
-                                {% include_block card %}
-                            {% endfor %}
-                        </div>
                     {% else %}
                         {% include_block block %}
                     {% endif %}
