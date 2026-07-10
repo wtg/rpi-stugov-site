@@ -1,4 +1,12 @@
-# Use an official Python runtime based on Debian 12 "bookworm" as a parent image.
+# Stage 1: compile Tailwind CSS
+FROM node:20-slim AS tailwind-builder
+WORKDIR /build
+COPY package.json ./
+RUN npm install
+COPY . .
+RUN npx tailwindcss -i stugov/static/css/input.css -o stugov/static/css/tailwind.css --minify
+
+# Stage 2: Python/Wagtail app
 FROM python:3.12-slim-bookworm
 
 # Add user that will be used in the container.
@@ -45,6 +53,11 @@ RUN chown -R wagtail:wagtail /app
 
 # Copy the source code of the project into the container.
 COPY --chown=wagtail:wagtail . .
+
+# Pull in the compiled Tailwind CSS from the builder stage.
+COPY --from=tailwind-builder --chown=wagtail:wagtail \
+    /build/stugov/static/css/tailwind.css \
+    stugov/static/css/tailwind.css
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
