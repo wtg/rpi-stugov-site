@@ -36,12 +36,12 @@ RUN pip install setuptools
 WORKDIR /app
 
 # Use /data folder for persistent data
-RUN mkdir data
+RUN mkdir -p data static
 
-# Set this directory to be owned by the "wagtail" user. This Wagtail project
-# uses SQLite, the folder needs to be owned by the user that
-# will be writing to the database file.
-RUN chown wagtail:wagtail /app
+# Recursively chown /app so the wagtail user owns both data/ and static/ —
+# Docker initialises an empty named volume from the image directory's ownership,
+# so static/ must be wagtail-owned here for collectstatic to succeed at runtime.
+RUN chown -R wagtail:wagtail /app
 
 # Copy the source code of the project into the container.
 COPY --chown=wagtail:wagtail . .
