@@ -142,16 +142,6 @@
                             </a>
                             <p class="text-gray-500 mt-0.5">Submit feedback or concerns anonymously</p>
                         </li>
-                        {% if settings.home.SiteSettings.box_archive_url %}
-                        <li>
-                            <a href="{{ settings.home.SiteSettings.box_archive_url }}"
-                               target="_blank" rel="noopener noreferrer"
-                               class="text-rpi-red hover:text-rpi-red-dark font-medium">
-                                Document Archive &rarr;
-                            </a>
-                            <p class="text-gray-500 mt-0.5">Full archive of public documents on Box</p>
-                        </li>
-                        {% endif %}
                         {% if settings.home.SiteSettings.discord_url %}
                         <li>
                             <a href="{{ settings.home.SiteSettings.discord_url }}"

@@ -56,73 +56,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet">
 
-        {# The ?plugins=typography query param loads the Tailwind Typography  #}
-        {# plugin alongside core Tailwind. This activates the `.prose` class  #}
-        {# family used throughout the site to style admin-authored rich text #}
-        {# (StreamField bodies, info-card text, form help_text, etc.) where  #}
-        {# we don't control the emitted HTML and so can't add utility classes #}
-        {# directly to <p>/<a>/<hr>/etc.                                      #}
-        <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-        <script>
-            // Configure Tailwind with RPI's brand colors and custom theme
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                        },
-                        colors: {
-                            // RPI's official red
-                            'rpi-red': '#d6001c',
-                            'rpi-red-dark': '#a50015',
-                            // Neutral tones for UI
-                            'stugov-dark': '#1a1a2e',
-                            'stugov-gray': '#4a4a68',
-                        },
-                        // Typography plugin overrides for admin-authored rich
-                        // text. Anything inside `.prose` gets these defaults.
-                        // See https://tailwindcss.com/docs/typography-plugin
-                        typography: ({ theme }) => ({
-                            DEFAULT: {
-                                css: {
-                                    // Brand-red links with subtle underline,
-                                    // darker on hover. Applies to <a> inside
-                                    // .prose containers (rich-text bodies,
-                                    // info-card text, form help_text, etc.)
-                                    'a': {
-                                        color: '#d6001c',
-                                        textDecoration: 'underline',
-                                        textUnderlineOffset: '2px',
-                                        transition: 'color 150ms ease',
-                                    },
-                                    'a:hover': {
-                                        color: '#a50015',
-                                    },
-                                    // More vertical breathing room around
-                                    // <hr> in StreamField rich-text blocks.
-                                    'hr': {
-                                        marginTop: '1rem',
-                                        marginBottom: '1rem',
-                                        borderColor: '#e5e7eb',
-                                    },
-                                    // More space between paragraphs than
-                                    // typography's default (1.25em).
-                                    'p': {
-                                        marginTop: '0',
-                                        marginBottom: '1.0rem',
-                                        lineHeight: '1.4em',
-                                    },
-                                    // Tone down blockquote default to brand red
-                                    'blockquote': {
-                                        borderLeftColor: '#d6001c',
-                                    },
-                                },
-                            },
-                        }),
-                    }
-                }
-            }
-        </script>
+        <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
 
         {# Site-specific CSS overrides (for anything Tailwind can't handle) #}
         <link rel="stylesheet" type="text/css" href="{% static 'css/stugov.css' %}">
