@@ -11,6 +11,8 @@ build
 htmlcov
 
 *.sqlite3
+stugov/static/css/tailwind.css
+node_modules/
 .claude/
 
 Union-Digital-Infrastructure-Plan-1360e6813c44807fa1c5fece505d6344.html
