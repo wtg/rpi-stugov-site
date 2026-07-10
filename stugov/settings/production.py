@@ -23,6 +23,14 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "https://sg
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
+# Trust the X-Forwarded-Proto header set by the TLS-terminating proxy in front of nginx.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# These require the full proxy chain to correctly forward HTTPS; enable via env once confirmed.
+SECURE_SSL_REDIRECT = bool(int(os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "0")))
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS >= 31536000
+
 try:
     from .local import *
 except ImportError:
