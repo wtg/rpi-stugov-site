@@ -178,6 +178,17 @@ class RecordIndexPage(Page):
     ]
     subpage_types = ["records.RecordPage"]
 
+    def serve(self, request, *args, **kwargs):
+        # Until Box API access is available, the record index redirects
+        # straight to the Box archive so visitors land on the source of
+        # truth instead of an empty listing.
+        from home.models import SiteSettings
+
+        site_settings = SiteSettings.load(request_or_site=request)
+        if site_settings.box_archive_url:
+            return redirect(site_settings.box_archive_url)
+        return super().serve(request, *args, **kwargs)
+
     def get_context(self, request, *args, **kwargs):
         """
         Build the record listing from the Box file cache.
