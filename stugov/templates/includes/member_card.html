@@ -4,9 +4,10 @@
 {# Expected context variables:                                        #}
 {#   - placement: a BranchMemberPlacement, CommitteeMemberPlacement,  #}
 {#     or ClassCouncilMemberPlacement instance                        #}
-{#   - display_role_override (optional): role text to show instead of #}
-{#     the placement's default display_role. Used by hierarchy views  #}
-{#     to show only the tier-specific role when a member spans tiers. #}
+{#   - roles (optional): a list of role-name strings to display, one  #}
+{#     per line. Passed by the branch hierarchy view (the roles for   #}
+{#     this member in the current tier). When absent, the card falls  #}
+{#     back to the committee/class-council placement's own role field.#}
 {#   - featured (optional, default False): if True, render a larger   #}
 {#     horizontal card (used for presiding officers).                 #}
 {#                                                                     #}
@@ -35,16 +36,12 @@
     {% endif %}
 
     <div class="p-5 flex-grow">
-        {# Role shown ABOVE name as an eyebrow label for the featured card #}
-        {% if display_role_override %}
+        {# Role(s) shown ABOVE name as eyebrow labels, one line each #}
+        {% for role in roles %}
         <p class="text-xs text-rpi-red font-semibold uppercase tracking-wide mb-1">
-            {{ display_role_override }}
+            {{ role }}
         </p>
-        {% elif placement.display_role %}
-        <p class="text-xs text-rpi-red font-semibold uppercase tracking-wide mb-1">
-            {{ placement.display_role }}
-        </p>
-        {% endif %}
+        {% endfor %}
 
         <h3 class="text-xl font-bold text-gray-900">
             {{ placement.member.first_name }} {{ placement.member.last_name }}
@@ -87,12 +84,12 @@
             {{ placement.member.first_name }} {{ placement.member.last_name }}
         </h3>
 
-        {# Role — prefer the tier-specific override passed by hierarchy   #}
-        {# views, then fall back to each placement type's native field.   #}
-        {% if display_role_override %}
-        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ display_role_override }}</p>
-        {% elif placement.display_role %}
-        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ placement.display_role }}</p>
+        {# Role(s) — branch listings pass a `roles` list (one line each); #}
+        {# committee/class-council pages fall back to their own fields.   #}
+        {% if roles %}
+        {% for role in roles %}
+        <p class="text-xs text-rpi-red font-medium mt-0.5">{{ role }}</p>
+        {% endfor %}
         {% elif placement.committee_role %}
         <p class="text-xs text-rpi-red font-medium mt-0.5">{{ placement.get_committee_role_display }}</p>
         {% elif placement.role %}

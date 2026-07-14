@@ -2,26 +2,31 @@
 Management command to import MemberProfile snippets and place them on
 the correct MemberListingPage from a CSV file.
 
+Roles are now branch-specific Role snippets, so run `import_roles` first to
+create them; this command resolves each role name to an existing Role.
+
 Usage:
     python manage.py import_members members.csv
     python manage.py import_members members.csv --dry-run
     python manage.py import_members members.csv --clear
 
 CSV format (header row required):
-    first_name,last_name,email,class_year,major,bio,branch,roles,role_title_override
+    first_name,last_name,email,class_year,major,bio,branch,roles
 
   - branch: one of senate, eboard, uc, gc, jboard
-  - roles: one or more ROLE_CHOICES keys separated by semicolons, e.g.
-    "senator" or "senator;chair" (semicolons avoid conflicting with CSV commas)
-  - role_title_override: optional custom title (leave blank to use role defaults)
+  - roles: one or more Role names (matched within the row's branch),
+    separated by semicolons, e.g.
+    "Multicultural Leadership Chair;Class of 2028 Representative"
+    (semicolons avoid conflicting with CSV commas)
   - email, class_year, major, bio: all optional (leave blank if unknown)
 
 The command will:
   1. Create or update MemberProfile snippets (matched by first_name + last_name)
   2. Find the MemberListingPage under the matching BranchPage
-  3. Create a BranchMemberPlacement linking the member to that page
+  3. Create a BranchMemberPlacement linking the member to that page and
+     assign the resolved Role snippets via the roles M2M
 
-Duplicate placements (same member + same page) are skipped.
+Duplicate placements (same member + same page) merge their roles.
 """
 
 import csv
@@ -30,26 +35,19 @@ from django.core.management.base import BaseCommand, CommandError
 
 from branches.models import (
     BranchMemberPlacement,
+    BranchMemberRole,
     BranchPage,
     MemberListingPage,
     MemberProfile,
-    ROLE_CHOICES,
+    Role,
     BRANCH_CHOICES,
 )
 
 
-# Build lookup dicts for validation
+# Build lookup dict for validation
 VALID_BRANCHES = {code for code, _ in BRANCH_CHOICES}
-VALID_ROLES = {code for code, _ in ROLE_CHOICES}
 
 REQUIRED_COLUMNS = {"first_name", "last_name", "branch", "roles"}
-ALL_COLUMNS = REQUIRED_COLUMNS | {
-    "email",
-    "class_year",
-    "major",
-    "bio",
-    "role_title_override",
-}
 
 
 class Command(BaseCommand):
@@ -116,6 +114,15 @@ class Command(BaseCommand):
                 "Create them in the Wagtail admin first."
             )
 
+        # -- Pre-fetch roles, keyed by (branch, name) --
+        roles_by_key = {
+            (role.branch, role.name): role for role in Role.objects.all()
+        }
+        if not roles_by_key:
+            raise CommandError(
+                "No Role snippets found. Run `import_roles` first."
+            )
+
         # -- Clear existing placements if requested --
         if clear and not dry_run:
             count = BranchMemberPlacement.objects.count()
@@ -135,7 +142,7 @@ class Command(BaseCommand):
 
         for i, row in enumerate(rows, start=2):  # start=2 because row 1 is header
             # Strip whitespace from all values
-            row = {k: v.strip() for k, v in row.items()}
+            row = {k: (v or "").strip() for k, v in row.items()}
 
             first_name = row.get("first_name", "")
             last_name = row.get("last_name", "")
@@ -160,21 +167,32 @@ class Command(BaseCommand):
                 stats["errors"] += 1
                 continue
 
-            # Parse semicolon-separated roles
-            roles = [r.strip() for r in roles_raw.split(";") if r.strip()]
-            if not roles:
+            # Parse semicolon-separated role names and resolve them to Role
+            # snippets within this row's branch. Dedupe (preserving order) so a
+            # repeated name doesn't create duplicate role assignments.
+            role_names = list(
+                dict.fromkeys(r.strip() for r in roles_raw.split(";") if r.strip())
+            )
+            if not role_names:
                 self.stderr.write(
                     self.style.ERROR(f"Row {i}: no roles specified, skipping.")
                 )
                 stats["errors"] += 1
                 continue
 
-            invalid_roles = [r for r in roles if r not in VALID_ROLES]
-            if invalid_roles:
+            roles = []
+            unknown = []
+            for role_name in role_names:
+                role = roles_by_key.get((branch, role_name))
+                if role is None:
+                    unknown.append(role_name)
+                else:
+                    roles.append(role)
+            if unknown:
                 self.stderr.write(
                     self.style.ERROR(
-                        f"Row {i}: invalid role(s) {invalid_roles}. "
-                        f"Must be one of: {', '.join(sorted(VALID_ROLES))}"
+                        f"Row {i}: no '{branch}' role(s) named {unknown}. "
+                        f"Create them in roles.csv / import_roles first."
                     )
                 )
                 stats["errors"] += 1
@@ -217,7 +235,7 @@ class Command(BaseCommand):
                 action = "update" if exists else "create"
                 self.stdout.write(
                     f"Row {i}: would {action} profile '{first_name} {last_name}' "
-                    f"→ {branch} as {', '.join(roles)}"
+                    f"→ {branch} as {', '.join(role_names)}"
                 )
                 if action == "create":
                     stats["profiles_created"] += 1
@@ -243,33 +261,26 @@ class Command(BaseCommand):
 
             # -- Create BranchMemberPlacement --
             listing_page = listing_pages[branch]
-            role_override = row.get("role_title_override", "")
 
-            # One placement per person per page; if they already exist,
-            # merge the new roles into their existing roles list.
+            # One placement per person per page; roles are stored as
+            # BranchMemberRole grandchildren (one row per role). Add any
+            # missing roles and commit via the Clusterable placement save.
             placement, placement_created = BranchMemberPlacement.objects.get_or_create(
                 page=listing_page,
                 member=profile,
-                defaults={
-                    "roles": roles,
-                    "role_title_override": role_override,
-                },
             )
 
-            if placement_created:
+            existing_ids = set(
+                placement.role_assignments.values_list("role_id", flat=True)
+            )
+            missing = [role for role in roles if role.id not in existing_ids]
+            if missing:
+                for role in missing:
+                    placement.role_assignments.add(BranchMemberRole(role=role))
+                placement.save()
                 stats["placements_created"] += 1
             else:
-                # Merge new roles into existing
-                existing = set(placement.roles or [])
-                merged = existing | set(roles)
-                if merged != existing or (role_override and role_override != placement.role_title_override):
-                    placement.roles = list(merged)
-                    if role_override:
-                        placement.role_title_override = role_override
-                    placement.save()
-                    stats["placements_created"] += 1
-                else:
-                    stats["placements_skipped"] += 1
+                stats["placements_skipped"] += 1
 
         # -- Summary --
         prefix = "[DRY RUN] " if dry_run else ""
