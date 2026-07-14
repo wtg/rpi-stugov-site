@@ -36,7 +36,7 @@
                     {# Top-level nav item #}
                     <a href="{% pageurl item.page %}"
                        class="px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 transition-colors
-                              {% if request.path == item.page.url or request.path|slice:'1:' in item.page.url %}bg-white/10{% endif %}">
+                              {% if item.page.url in request.path %}bg-white/10{% endif %}">
                         {{ item.page.title }}
                     </a>
 

@@ -17,12 +17,16 @@ Key design decisions:
     data like the person's role on that particular page.
 """
 
+from datetime import date
+
 from django import forms
 from django.db import models
 
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
+from wagtail.admin.forms.models import WagtailAdminModelForm
+from wagtail.admin.forms.pages import WagtailAdminPageForm
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.fields import RichTextField, StreamField
 from wagtail.images import get_image_model_string
@@ -31,39 +35,6 @@ from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
 from stugov.blocks import STANDARD_STREAMFIELD_BLOCKS
-
-
-# ---------------------------------------------------------------------------
-# Custom field: JSONField that renders as CheckboxSelectMultiple
-# ---------------------------------------------------------------------------
-
-class MultiSelectField(models.JSONField):
-    """
-    A JSONField that stores a list of strings but renders as checkboxes
-    in Django/Wagtail admin forms. Works correctly inside InlinePanel.
-    """
-
-    def __init__(self, *args, choices=None, **kwargs):
-        self.choices_list = choices or []
-        super().__init__(*args, **kwargs)
-
-    def deconstruct(self):
-        name, path, args, kwargs = super().deconstruct()
-        if self.choices_list:
-            kwargs["choices"] = self.choices_list
-        return name, path, args, kwargs
-
-    def formfield(self, **kwargs):
-        defaults = {
-            "form_class": forms.TypedMultipleChoiceField,
-            "choices": self.choices_list,
-            "widget": forms.CheckboxSelectMultiple,
-            "coerce": str,
-            "required": False,
-        }
-        defaults.update(kwargs)
-        # Skip JSONField.formfield() — we don't want a Textarea
-        return models.Field.formfield(self, **defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -80,31 +51,26 @@ BRANCH_CHOICES = [
     ("jboard", "Judicial Board"),
 ]
 
-ROLE_CHOICES = [
-    # Executive roles (used across most branches)
-    ("president_union", "President of the Union"),
-    ("vice_president", "Vice President"),
-    # Senate-specific
-    ("grand_marshal", "Grand Marshal"),
-    ("vice_grand_marshal", "Vice Grand Marshal"),
-    ("senator", "Senator"),
-    # UC/GC-specific
-    ("council_president", "Council President"),
-    ("class_president", "Class President"),
-    ("representative", "Representative"),
-    # Committee roles
-    ("chair", "Committee Chair"),
-    ("vice_chair", "Vice Chair"),
-    ("member", "Member"),
-    # Judicial Board
-    ("chief_justice", "Chief Justice"),
-    ("justice", "Justice"),
-    # Misc Officers
-    ("secretary", "Secretary"),
-    ("treasurer", "Treasurer"),
-    ("parliamentarian", "Parliamentarian"),
-    ("liaison", "Liaison"),
+# Fraternity & Sorority Life association of the constituency a role represents.
+FSL_CHOICES = [
+    ("associated", "FSL-Associated"),
+    ("independent", "Independent"),
+    ("none", "No FSL Association"),
 ]
+
+
+def constituency_class_choices():
+    """
+    Choices for the graduating class a Role represents.
+
+    Returns the current four undergraduate graduating years plus "Graduate"
+    and "None". This is a *callable* (Django 6.0 evaluates choices lazily),
+    so the year window rolls forward automatically without generating a new
+    migration each academic year.
+    """
+    current = date.today().year
+    years = [(str(y), str(y)) for y in range(current, current + 5)]
+    return years + [("graduate", "Graduate"), ("none", "None")]
 
 
 # ---------------------------------------------------------------------------
@@ -112,60 +78,182 @@ ROLE_CHOICES = [
 # ---------------------------------------------------------------------------
 # Defines how MemberListingPage groups member placements into sections.
 # The presiding officer appears first, followed by officers of the body,
-# then committee chairs, then voting members. Each section preserves the
-# admin-configured sort order within the tier. If a member holds roles
-# across multiple tiers, their card is shown once per tier (duplicated).
+# then committee chairs, then voting members, then club financial advisors.
+# Each Role snippet carries its own tier (see the Role model). If a member
+# holds roles across multiple tiers, their card is shown once per tier.
 
 HIERARCHY_TIERS = [
-    {
-        "key": "presiding",
-        "label": "Presiding Officer",
-        "roles": [
-            "grand_marshal",
-            "president_union",
-            "council_president",
-            "chief_justice",
-        ],
-    },
-    {
-        "key": "officers",
-        "label": "Officers",
-        "roles": [
-            "vice_grand_marshal",
-            "vice_president",
-            "secretary",
-            "treasurer",
-            "parliamentarian",
-            "liaison",
-        ],
-    },
-    {
-        "key": "chairs",
-        "label": "Committee Chairs",
-        "roles": [
-            "chair",
-            "vice_chair",
-        ],
-    },
-    {
-        "key": "members",
-        "label": "Members",
-        "roles": [
-            "senator",
-            "representative",
-            "class_president",
-            "justice",
-            "member",
-        ],
-    },
+    {"key": "presiding", "label": "Presiding Officer"},
+    {"key": "officers", "label": "Officers"},
+    {"key": "chairs", "label": "Committee Chairs"},
+    {"key": "members", "label": "Members"},
+    {"key": "advisors", "label": "Non-voting Members"},
 ]
 
-# Reverse lookup: role_key -> tier_key
-ROLE_TO_TIER = {
-    role: tier["key"] for tier in HIERARCHY_TIERS for role in tier["roles"]
-}
-# Default tier for any role not explicitly categorized
+# Choices for the Role.tier field, derived from the hierarchy definition.
+TIER_CHOICES = [(t["key"], t["label"]) for t in HIERARCHY_TIERS]
+# Default tier for any role not explicitly categorized.
 DEFAULT_TIER = "members"
+
+
+# ===========================================================================
+# SNIPPET: Role
+# ===========================================================================
+
+@register_snippet
+class Role(index.Indexed, models.Model):
+    """
+    A branch-specific role that can be assigned to members on a
+    MemberListingPage (e.g. "Class of 2027 Representative").
+
+    Roles are snippets (not a hardcoded list) so editors can manage them in
+    the admin, so the same role name can exist in different branches while
+    staying visibly distinct, and so each role can record the constituency
+    it represents — enabling a future "who represents me?" search.
+
+    Note: committees and class councils intentionally do NOT use this model;
+    they keep their own role fields (CommitteeMemberPlacement.committee_role,
+    ClassCouncilMemberPlacement.role).
+    """
+
+    name = models.CharField(
+        max_length=255,
+        help_text="Displayed role text, e.g. 'Class of 2027 Representative'.",
+    )
+    branch = models.CharField(
+        max_length=20,
+        choices=BRANCH_CHOICES,
+        help_text="Which branch this role belongs to.",
+    )
+    tier = models.CharField(
+        max_length=20,
+        choices=TIER_CHOICES,
+        default=DEFAULT_TIER,
+        help_text="Display rank on the member listing page. "
+                  "'Club Financial Advisors' sort to the bottom.",
+    )
+    constituency_class = models.CharField(
+        max_length=20,
+        choices=constituency_class_choices,
+        default="none",
+        help_text="Graduating class this role represents, if any.",
+    )
+    constituency_fsl = models.CharField(
+        max_length=20,
+        choices=FSL_CHOICES,
+        blank=True,
+        verbose_name="Constituency FSL association",
+        help_text="FSL group this role represents, if any.",
+    )
+
+    panels = [
+        FieldPanel("name"),
+        FieldPanel("branch"),
+        FieldPanel("tier"),
+        MultiFieldPanel(
+            [
+                FieldPanel("constituency_class"),
+                FieldPanel("constituency_fsl"),
+            ],
+            heading="Constituency",
+            help_text="Who this role represents. Used by the constituent "
+                      "search to match students to their representatives.",
+        ),
+    ]
+
+    search_fields = [
+        index.SearchField("name"),
+        index.FilterField("branch"),
+        index.FilterField("tier"),
+        index.FilterField("constituency_class"),
+        index.FilterField("constituency_fsl"),
+    ]
+
+    class Meta:
+        ordering = ["branch", "name"]
+        verbose_name = "Role"
+        verbose_name_plural = "Roles"
+
+    def __str__(self):
+        # Include the branch so same-named roles stay distinct in the admin,
+        # e.g. "Student Senate: Chair" vs "Executive Board: Chair".
+        return f"{self.get_branch_display()}: {self.name}"
+
+
+# ---------------------------------------------------------------------------
+# Admin form plumbing for branch-scoped role dropdowns
+# ---------------------------------------------------------------------------
+# A MemberListingPage always lives under a BranchPage, so the roles offered to
+# its members should be limited to that branch. Wagtail passes the page form's
+# `parent_page` (the BranchPage) and modelcluster threads named kwargs down to
+# child/grandchild forms via `inherit_kwargs`. We relay `parent_page` through
+# the placement form and use it to filter the role dropdown's queryset.
+
+class BranchScopedInlinePanel(InlinePanel):
+    """InlinePanel that passes the page form's `parent_page` into each child
+    form, so nested forms can scope their querysets to the branch.
+
+    Stock InlinePanel ignores the child model's `base_form_class` (it only sets
+    a custom form for the `defer_required_on_fields` case), so we also inject it
+    here — otherwise our custom forms that accept `parent_page` are never used.
+    """
+
+    def get_form_options(self):
+        opts = super().get_form_options()
+        formset = opts["formsets"][self.relation_name]
+        formset["inherit_kwargs"] = ["parent_page"]
+        base_form = getattr(self.db_field.related_model, "base_form_class", None)
+        if base_form is not None:
+            formset["form"] = base_form
+        return opts
+
+
+class BranchMemberPlacementForm(WagtailAdminModelForm):
+    """Relays `parent_page` so the nested role formset can inherit it."""
+
+    def __init__(self, *args, parent_page=None, **kwargs):
+        self.parent_page = parent_page
+        super().__init__(*args, **kwargs)
+
+
+class BranchMemberRoleForm(WagtailAdminModelForm):
+    """Scopes the role dropdown to the listing page's branch."""
+
+    def __init__(self, *args, parent_page=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if parent_page is not None:
+            # Resolve branch_type once per page edit and cache it on the shared
+            # parent_page object, rather than re-querying .specific per row.
+            branch = getattr(parent_page, "_branch_type_cache", None)
+            if branch is None:
+                branch = parent_page.specific.branch_type
+                parent_page._branch_type_cache = branch
+            qs = Role.objects.filter(branch=branch)
+        else:
+            # Without a branch we can't scope safely, so offer nothing rather
+            # than every branch's roles.
+            qs = Role.objects.none()
+        # Always keep this row's currently-assigned role selectable — even if it
+        # now belongs to a different branch (e.g. the role was re-branched) — so
+        # the row stays valid and the page remains editable.
+        if self.instance and self.instance.role_id:
+            qs = (qs | Role.objects.filter(pk=self.instance.role_id)).distinct()
+        self.fields["role"].queryset = qs.order_by("tier", "name")
+
+
+class BranchListingPageForm(WagtailAdminPageForm):
+    """Page form for MemberListingPage.
+
+    WagtailAdminPageForm assigns ``self.parent_page`` *after* calling super,
+    but the super call is where modelcluster builds the child formsets and
+    reads ``parent_page`` via ``inherit_kwargs``. We set it first so the
+    member-placement formset (and its nested role dropdowns) receive the
+    branch page rather than ``None``.
+    """
+
+    def __init__(self, *args, parent_page=None, **kwargs):
+        self.parent_page = parent_page
+        super().__init__(*args, parent_page=parent_page, **kwargs)
 
 
 # ===========================================================================
@@ -343,7 +431,7 @@ class BranchPage(Page):
 # PAGE: MemberListingPage ("Meet the Senate", etc.)
 # ===========================================================================
 
-class BranchMemberPlacement(Orderable):
+class BranchMemberPlacement(Orderable, ClusterableModel):
     """
     Through model linking a MemberListingPage to a MemberProfile.
 
@@ -369,91 +457,45 @@ class BranchMemberPlacement(Orderable):
         # We don't need MemberProfile.memberlistingpage_set because we
         # always query from the page side, not the member side.
     )
-    roles = MultiSelectField(
-        choices=ROLE_CHOICES,
-        default=list,
-        help_text="One or more roles this member holds on this page.",
-        
-    )
-    role_title_override = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Default title override",
-        help_text="Fallback custom title used in any tier where no "
-                  "tier-specific override is set. Leave blank to show "
-                  "the role name from the dropdown.",
-    )
-    # -- Per-tier title overrides --
-    # When a member holds roles across multiple tiers (e.g. Committee Chair
-    # AND Senator), each tier section can display a different custom title.
-    # Example: a member with roles ["chair", "senator"] can show
-    # "Academic Affairs Chair" in the Committee Chairs section and
-    # "Class of 2027 Senator" in the Members section.
-    presiding_title_override = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Presiding Officer title override",
-        help_text="Title shown in the Presiding Officer section only.",
-    )
-    officers_title_override = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Officers title override",
-        help_text="Title shown in the Officers section only.",
-    )
-    chairs_title_override = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Committee Chairs title override",
-        help_text="Title shown in the Committee Chairs section only, "
-                  "e.g. 'Academic Affairs Chair'.",
-    )
-    members_title_override = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Members title override",
-        help_text="Title shown in the Members section only, "
-                  "e.g. 'Class of 2027 Senator'.",
-    )
+
+    # The custom form relays `parent_page` to the nested role formset (below)
+    # so each role dropdown can be scoped to this listing's branch.
+    base_form_class = BranchMemberPlacementForm
 
     panels = [
         FieldPanel("member"),
-        FieldPanel("roles"),
-        FieldPanel("role_title_override"),
-        MultiFieldPanel(
-            [
-                FieldPanel("presiding_title_override"),
-                FieldPanel("officers_title_override"),
-                FieldPanel("chairs_title_override"),
-                FieldPanel("members_title_override"),
-            ],
-            heading="Per-section title overrides (advanced)",
-            help_text="Only needed if this member holds roles in multiple "
-                      "sections and should display a different title in "
-                      "each. Per-section overrides take priority over the "
-                      "default title override above.",
-            classname="collapsed",
-        ),
+        # A nested InlinePanel of single-role dropdowns: editors add a variable
+        # number of roles per member, each chosen from a branch-scoped <select>.
+        BranchScopedInlinePanel("role_assignments", label="Roles"),
     ]
 
-    def title_override_for_tier(self, tier_key):
-        """
-        Return the tier-specific override if set, else the general override,
-        else empty string.
-        """
-        tier_field = f"{tier_key}_title_override"
-        tier_value = getattr(self, tier_field, "") or ""
-        if tier_value:
-            return tier_value
-        return self.role_title_override or ""
 
-    @property
-    def display_role(self):
-        """Return the custom title if set, otherwise a comma-separated list of role names."""
-        if self.role_title_override:
-            return self.role_title_override
-        role_map = dict(ROLE_CHOICES)
-        return ", ".join(role_map.get(r, r) for r in (self.roles or []))
+class BranchMemberRole(Orderable):
+    """
+    A single role held by a member on a MemberListingPage.
+
+    This is a grandchild of MemberListingPage (ParentalKey -> placement, which
+    has a ParentalKey -> page). Each row is one branch-scoped role dropdown, so
+    a member can hold a variable number of roles without a wall of checkboxes.
+    """
+
+    placement = ParentalKey(
+        "branches.BranchMemberPlacement",
+        related_name="role_assignments",
+    )
+    role = models.ForeignKey(
+        "branches.Role",
+        on_delete=models.CASCADE,
+        related_name="+",
+    )
+
+    base_form_class = BranchMemberRoleForm
+
+    # forms.Select renders the snippet FK as a plain dropdown instead of the
+    # default chooser modal; the form scopes its options to the branch.
+    panels = [
+        FieldPanel("role", widget=forms.Select),
+    ]
 
 
 class MemberListingPage(Page):
@@ -481,9 +523,15 @@ class MemberListingPage(Page):
         help_text="Introductory text shown above the member grid.",
     )
 
+    # Custom form fixes parent_page ordering so role dropdowns scope to branch.
+    base_form_class = BranchListingPageForm
+
     content_panels = Page.content_panels + [
         FieldPanel("intro"),
-        InlinePanel("member_placements", label="Members", classname="collapsed"),
+        # BranchScopedInlinePanel threads parent_page (this page's BranchPage)
+        # down to each placement form, which in turn relays it to the nested
+        # role dropdowns so they only offer this branch's roles.
+        BranchScopedInlinePanel("member_placements", label="Members", classname="collapsed"),
     ]
 
     parent_page_types = ["branches.BranchPage"]
@@ -504,68 +552,54 @@ class MemberListingPage(Page):
             ]
 
         Each entry is a dict with:
-            "placement":    the BranchMemberPlacement instance
-            "tier_roles":   the subset of the member's roles that belong
-                            to this tier (used for display)
-            "display_role": the role text to show on the card for this tier
+            "placement": the BranchMemberPlacement instance
+            "roles":     the names of the member's roles that belong to this
+                         tier, shown one per line on the card
 
-        Members whose roles span multiple tiers appear once per tier.
-        Placements with no roles fall into the "members" tier by default.
-        The admin-configured sort order (from InlinePanel drag-and-drop)
-        is preserved within each tier.
+        Each Role snippet carries its own tier, so a member whose roles span
+        multiple tiers appears once per tier, and a member with several roles
+        in the same tier gets one card listing each role. Placements with no
+        roles fall into the "members" tier by default.
+
+        Entries within a tier are sorted deterministically by first role
+        name, then member last/first name.
         """
-        tiers = {
-            t["key"]: {"label": t["label"], "entries": []}
-            for t in HIERARCHY_TIERS
-        }
-        role_map = dict(ROLE_CHOICES)
+        tiers = {t["key"]: {"label": t["label"], "entries": []} for t in HIERARCHY_TIERS}
 
-        for placement in self.member_placements.select_related("member").all():
+        placements = (
+            self.member_placements
+            .select_related("member")
+            .prefetch_related("role_assignments__role")
+            .all()
+        )
+        for placement in placements:
             if not placement.member.is_active:
                 continue
 
-            roles = placement.roles or []
-
-            # Bucket the placement's roles by tier
+            # Bucket the placement's roles by their tier, preserving each
+            # role's name for multi-line display.
             tier_roles = {}
-            for role in roles:
-                tier_key = ROLE_TO_TIER.get(role, DEFAULT_TIER)
-                tier_roles.setdefault(tier_key, []).append(role)
+            for assignment in placement.role_assignments.all():
+                role = assignment.role
+                tier_key = role.tier if role.tier in tiers else DEFAULT_TIER
+                tier_roles.setdefault(tier_key, []).append(role.name)
 
-            # No roles set → fall back to default tier
+            # No roles set → still show the member, in the default tier.
             if not tier_roles:
                 tier_roles[DEFAULT_TIER] = []
 
-            # Emit one entry per tier the placement belongs to. Display
-            # priority within each tier: tier-specific override first,
-            # then the general role_title_override, then the joined role
-            # names from the dropdown.
-            for tier_key, roles_in_tier in tier_roles.items():
-                tier_override = placement.title_override_for_tier(tier_key)
-                if tier_override:
-                    display_role = tier_override
-                elif roles_in_tier:
-                    display_role = ", ".join(
-                        role_map.get(r, r) for r in roles_in_tier
-                    )
-                else:
-                    display_role = ""
-
+            for tier_key, role_names in tier_roles.items():
                 tiers[tier_key]["entries"].append({
                     "placement": placement,
-                    "tier_roles": roles_in_tier,
-                    "display_role": display_role,
+                    "roles": role_names,
                 })
 
-        # Sort each tier's entries alphabetically by display_role (ascending,
-        # case-insensitive). This surfaces e.g. "Academic Affairs Chair"
-        # before "Student Life Chair" within the Committee Chairs section.
-        # Ties on display_role fall back to member last name then first name
-        # for stable ordering.
+        # Deterministic ordering within each tier: first role name, then
+        # member last name, then first name (all case-insensitive).
         for tier_data in tiers.values():
             tier_data["entries"].sort(
                 key=lambda e: (
-                    (e["display_role"] or "").lower(),
+                    (e["roles"][0].lower() if e["roles"] else ""),
                     e["placement"].member.last_name.lower(),
                     e["placement"].member.first_name.lower(),
                 )
