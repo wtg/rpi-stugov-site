@@ -185,6 +185,15 @@ STORAGES = {
 # can exceed this limit within Wagtail's page editor.
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 
+# Email settings
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = os.environ.get("EMAIL_PORT", 587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "stugov_site@union.lists.rpi.edu")
 
 # Wagtail settings
 
@@ -216,11 +225,3 @@ WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'tx
 # Safe here because only Wagtail admins (not end users) author help_text.
 WAGTAILFORMS_HELP_TEXT_ALLOW_HTML = True
 
-
-# Box API settings (for syncing public records)
-# Create a Box Custom App with Client Credentials Grant (CCG) auth,
-# then have a Box admin authorize it in Admin Console → Apps → Custom Apps.
-BOX_CLIENT_ID = os.environ.get("BOX_CLIENT_ID", "")
-BOX_CLIENT_SECRET = os.environ.get("BOX_CLIENT_SECRET", "")
-BOX_ENTERPRISE_ID = os.environ.get("BOX_ENTERPRISE_ID", "")
-BOX_RECORDS_FOLDER_ID = os.environ.get("BOX_RECORDS_FOLDER_ID", "47634049782")
