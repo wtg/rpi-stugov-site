@@ -116,8 +116,8 @@ class ComplaintFormPage(AbstractEmailForm):
         send_mail(
             self.subject,
             self.render_email(form),
-            addresses,
             settings.DEFAULT_FROM_EMAIL,
+            addresses,
         )
 
     parent_page_types = ["home.HomePage"]
