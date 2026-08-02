@@ -25,11 +25,13 @@ How Wagtail's form builder works:
      d) Renders the thank_you_text as a landing page
 """
 
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import models
 
 from modelcluster.fields import ParentalKey
 
-from wagtail.admin.panels import FieldPanel, FieldRowPanel, InlinePanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.contrib.forms.models import AbstractEmailForm, AbstractFormField
 from wagtail.fields import RichTextField
 
@@ -96,19 +98,27 @@ class ComplaintFormPage(AbstractEmailForm):
         FieldPanel("privacy_notice"),
         MultiFieldPanel(
             [
-                FieldRowPanel(
-                    [
-                        FieldPanel("from_address", classname="col6"),
-                        FieldPanel("to_address", classname="col6"),
-                    ]
-                ),
+                FieldPanel("to_address"),
                 FieldPanel("subject"),
             ],
             heading="Email Notification Settings",
             help_text="Configure where submission notifications are sent. "
-                      "Leave blank to disable email notifications.",
+                      "Leave blank to disable email notifications. The from "
+                      "address is set by the DEFAULT_FROM_EMAIL setting.",
         ),
     ]
+
+    def send_mail(self, form):
+        # RPI's SMTP relay only permits sending from the authenticated
+        # mailbox, so ignore the page's from_address and use the project
+        # default (which carries the human-readable display name).
+        addresses = [x.strip() for x in self.to_address.split(",")]
+        send_mail(
+            self.subject,
+            self.render_email(form),
+            addresses,
+            settings.DEFAULT_FROM_EMAIL,
+        )
 
     parent_page_types = ["home.HomePage"]
     subpage_types = []
