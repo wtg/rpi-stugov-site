@@ -98,7 +98,7 @@
 
         {# Class year (compact — skip major to keep cards small) #}
         {% if placement.member.class_year %}
-        <p class="text-xs text-gray-400 mt-0.5">'{{ placement.member.class_year|slice:"2:" }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">'{{ placement.member.class_year|stringformat:"s"|slice:"2:" }}</p>
         {% endif %}
     </div>
 </div>
