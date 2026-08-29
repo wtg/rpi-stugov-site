@@ -3,17 +3,8 @@ services:
     image: stugov-site-wagtail
     build: .
     restart: always
-    environment:
-      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
-      DATA_DIR: /app/data/
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
-      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS}
-      EMAIL_HOST: ${EMAIL_HOST}
-      EMAIL_PORT: ${EMAIL_PORT:-587}
-      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
-      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+    env_file:
+      - .env
     volumes:
       - ${HOST_DATA_DIR:-./data/}:/app/data/
       - static_files:/app/static

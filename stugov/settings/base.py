@@ -14,6 +14,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.parent
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
@@ -28,6 +30,7 @@ INSTALLED_APPS = [
     # Project apps — listed first so their templates/static files take priority.
     # Django discovers templates by searching INSTALLED_APPS in order, so our
     # apps override Wagtail defaults when template names collide.
+    "sso",
     "branches",
     "events",
     "records",
@@ -61,6 +64,12 @@ INSTALLED_APPS = [
     "modelcluster",
     "taggit",
     "django_filters",
+    # Campus OIDC authentication. The provider is configured from environment
+    # variables below, so secrets never need to be stored in the database.
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.openid_connect",
     # Django built-in apps.
     "django.contrib.admin",
     "django.contrib.auth",
@@ -76,6 +85,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
@@ -108,6 +118,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "stugov.wsgi.application"
+
+AUTHENTICATION_BACKENDS = [
+    # Keep Django's backend for Wagtail permissions and local break-glass users.
+    "django.contrib.auth.backends.ModelBackend",
+    # Authenticate users associated with a campus OIDC SocialAccount.
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
 
 
 # Database
@@ -209,7 +226,9 @@ WAGTAILSEARCH_BACKENDS = {
 
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
-WAGTAILADMIN_BASE_URL = "https://sg.rpi.edu"
+WAGTAILADMIN_BASE_URL = os.environ.get(
+    "WAGTAILADMIN_BASE_URL", "https://sg.rpi.edu"
+).rstrip("/")
 
 # Allowed file extensions for documents in the document library.
 # This can be omitted to allow all files, but note that this may present a security risk
@@ -225,3 +244,97 @@ WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'tx
 # Safe here because only Wagtail admins (not end users) author help_text.
 WAGTAILFORMS_HELP_TEXT_ALLOW_HTML = True
 
+
+# Campus OpenID Connect
+
+def env_bool(name, default=False):
+    """Read a conventional boolean environment variable."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_csv(name):
+    """Read a comma-separated environment variable into unique values."""
+    return tuple(
+        dict.fromkeys(
+            value.strip()
+            for value in os.environ.get(name, "").split(",")
+            if value.strip()
+        )
+    )
+
+
+OIDC_ENABLED = env_bool("OIDC_ENABLED")
+OIDC_PROVIDER_ID = "campus"
+OIDC_PROVIDER_NAME = "CMS"
+OIDC_SERVER_URL = os.environ.get("OIDC_SERVER_URL", "").rstrip("/")
+OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "")
+OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET", "")
+OIDC_SCOPES = tuple(
+    scope for scope in os.environ.get("OIDC_SCOPES", "openid profile email").split() if scope
+)
+OIDC_ROLE_CLAIM_PATH = os.environ.get("OIDC_ROLE_CLAIM_PATH", "roles").strip()
+OIDC_EDITOR_ROLES = env_csv("OIDC_EDITOR_ROLES")
+OIDC_MODERATOR_ROLES = env_csv("OIDC_MODERATOR_ROLES")
+OIDC_POST_LOGOUT_REDIRECT_URI = f"{WAGTAILADMIN_BASE_URL}/"
+
+if OIDC_ENABLED:
+    required_oidc_settings = {
+        "OIDC_SERVER_URL": OIDC_SERVER_URL,
+        "OIDC_CLIENT_ID": OIDC_CLIENT_ID,
+        "OIDC_CLIENT_SECRET": OIDC_CLIENT_SECRET,
+        "OIDC_ROLE_CLAIM_PATH": OIDC_ROLE_CLAIM_PATH,
+        "OIDC_EDITOR_ROLES": OIDC_EDITOR_ROLES,
+        "OIDC_MODERATOR_ROLES": OIDC_MODERATOR_ROLES,
+    }
+    missing_oidc_settings = [
+        name for name, value in required_oidc_settings.items() if not value
+    ]
+    if missing_oidc_settings:
+        raise ImproperlyConfigured(
+            "OIDC is enabled but these settings are empty: "
+            + ", ".join(missing_oidc_settings)
+        )
+    if not OIDC_SERVER_URL.startswith("https://"):
+        raise ImproperlyConfigured("OIDC_SERVER_URL must use HTTPS")
+    if not WAGTAILADMIN_BASE_URL.startswith("https://"):
+        raise ImproperlyConfigured("WAGTAILADMIN_BASE_URL must use HTTPS with OIDC")
+
+# allauth is used only as an OIDC relying party. Local password authentication
+# remains available through Wagtail and Django's own admin login pages.
+SOCIALACCOUNT_ONLY = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_STORE_TOKENS = False
+SOCIALACCOUNT_REQUESTS_TIMEOUT = 5
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_ADAPTER = "sso.adapter.CampusSocialAccountAdapter"
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_UNIQUE_EMAIL = True
+
+SOCIALACCOUNT_PROVIDERS = {}
+if OIDC_ENABLED:
+    SOCIALACCOUNT_PROVIDERS = {
+        "openid_connect": {
+            "APPS": [
+                {
+                    "provider_id": OIDC_PROVIDER_ID,
+                    "name": OIDC_PROVIDER_NAME,
+                    "client_id": OIDC_CLIENT_ID,
+                    "secret": OIDC_CLIENT_SECRET,
+                    "settings": {
+                        "server_url": OIDC_SERVER_URL,
+                        "scope": OIDC_SCOPES,
+                        "oauth_pkce_enabled": True,
+                        # This campus issuer is authoritative for its email
+                        # claim even though it omits email_verified.
+                        "verified_email": True,
+                        "email_authentication": True,
+                    },
+                }
+            ]
+        }
+    }
+    WAGTAILADMIN_LOGIN_URL = f"/accounts/oidc/{OIDC_PROVIDER_ID}/login/"
