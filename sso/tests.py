@@ -21,6 +21,7 @@ OIDC_SETTINGS = {
     "OIDC_ROLE_CLAIM_PATH": "realm_access.roles",
     "OIDC_EDITOR_ROLES": ("site-editor",),
     "OIDC_MODERATOR_ROLES": ("site-moderator",),
+    "OIDC_ADMIN_ROLES": ("organization.408.tag.President",),
     "SOCIALACCOUNT_EMAIL_AUTHENTICATION": True,
 }
 
@@ -159,6 +160,82 @@ class CampusAdapterTests(TestCase):
             {"Editors", "Moderators"},
         )
 
+    def test_president_is_created_as_wagtail_only_superuser(self):
+        login = self.sociallogin(self.claims("organization.408.tag.President"))
+
+        self.adapter.pre_social_login(self.request, login)
+        user = self.adapter.save_user(self.request, login)
+
+        self.assertTrue(user.is_superuser)
+        self.assertFalse(user.is_staff)
+        self.assertTrue(user.has_perm("wagtailadmin.access_admin"))
+        self.assertEqual(set(user.groups.values_list("name", flat=True)), set())
+
+    def test_admin_role_matching_is_case_sensitive(self):
+        login = self.sociallogin(self.claims("organization.408.tag.president"))
+
+        with self.assertRaises(ImmediateHttpResponse) as raised:
+            self.adapter.pre_social_login(self.request, login)
+
+        self.assertEqual(raised.exception.response.status_code, 403)
+
+    def test_existing_linked_president_can_log_in_repeatedly(self):
+        user = get_user_model().objects.create_user(
+            username="president",
+            email="student@example.edu",
+            is_superuser=True,
+            is_staff=False,
+        )
+        login = self.sociallogin(
+            self.claims("organization.408.tag.President"),
+            user=user,
+            saved_account=True,
+        )
+
+        self.adapter.pre_social_login(self.request, login)
+        user.refresh_from_db()
+
+        self.assertTrue(user.is_superuser)
+        self.assertFalse(user.is_staff)
+
+    def test_president_keeps_independently_mapped_groups(self):
+        login = self.sociallogin(
+            self.claims(
+                "site-editor",
+                "site-moderator",
+                "organization.408.tag.President",
+            )
+        )
+
+        self.adapter.pre_social_login(self.request, login)
+        user = self.adapter.save_user(self.request, login)
+
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(
+            set(user.groups.values_list("name", flat=True)),
+            {"Editors", "Moderators"},
+        )
+
+    def test_president_role_removal_downgrades_to_moderator(self):
+        user = get_user_model().objects.create_user(
+            username="president",
+            email="student@example.edu",
+            is_superuser=True,
+            is_staff=False,
+        )
+        login = self.sociallogin(
+            self.claims("site-moderator"), user=user, saved_account=True
+        )
+
+        self.adapter.pre_social_login(self.request, login)
+        user.refresh_from_db()
+
+        self.assertFalse(user.is_superuser)
+        self.assertFalse(user.is_staff)
+        self.assertEqual(
+            set(user.groups.values_list("name", flat=True)), {"Moderators"}
+        )
+
     def test_existing_linked_user_roles_are_authoritatively_synchronized(self):
         user = get_user_model().objects.create_user(
             username="existing", email="student@example.edu"
@@ -190,6 +267,45 @@ class CampusAdapterTests(TestCase):
         self.assertEqual(raised.exception.response.status_code, 403)
         self.assertEqual(
             set(user.groups.values_list("name", flat=True)), {"Unrelated"}
+        )
+
+    def test_role_removal_revokes_linked_president_and_denies_login(self):
+        user = get_user_model().objects.create_user(
+            username="president",
+            email="student@example.edu",
+            is_superuser=True,
+            is_staff=False,
+        )
+        user.groups.add(self.editors)
+        login = self.sociallogin(self.claims(), user=user, saved_account=True)
+
+        with self.assertRaises(ImmediateHttpResponse) as raised:
+            self.adapter.pre_social_login(self.request, login)
+
+        user.refresh_from_db()
+        self.assertEqual(raised.exception.response.status_code, 403)
+        self.assertFalse(user.is_superuser)
+        self.assertFalse(user.is_staff)
+        self.assertEqual(set(user.groups.values_list("name", flat=True)), set())
+
+    def test_denied_linked_break_glass_account_is_not_mutated(self):
+        user = get_user_model().objects.create_user(
+            username="break-glass",
+            email="student@example.edu",
+            is_superuser=True,
+            is_staff=True,
+        )
+        user.groups.add(self.editors)
+        login = self.sociallogin(self.claims(), user=user, saved_account=True)
+
+        with self.assertRaises(ImmediateHttpResponse):
+            self.adapter.pre_social_login(self.request, login)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        self.assertEqual(
+            set(user.groups.values_list("name", flat=True)), {"Editors"}
         )
 
     def test_missing_email_or_malformed_role_claim_is_denied(self):
@@ -240,6 +356,20 @@ class CampusAdapterTests(TestCase):
             self.adapter.authenticate_by_email(
                 self.sociallogin(self.claims("site-editor"))
             )
+
+    def test_admin_claim_cannot_link_an_unrelated_local_superuser(self):
+        get_user_model().objects.create_user(
+            username="break-glass",
+            email="student@example.edu",
+            is_staff=True,
+            is_superuser=True,
+        )
+        login = self.sociallogin(
+            self.claims("organization.408.tag.President")
+        )
+
+        with self.assertRaises(PermissionDenied):
+            self.adapter.authenticate_by_email(login)
 
     def test_existing_profile_sync_does_not_rename_username(self):
         user = get_user_model().objects.create_user(

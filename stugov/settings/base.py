@@ -273,11 +273,12 @@ OIDC_SERVER_URL = os.environ.get("OIDC_SERVER_URL", "").rstrip("/")
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "")
 OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET", "")
 OIDC_SCOPES = tuple(
-    scope for scope in os.environ.get("OIDC_SCOPES", "openid profile email").split() if scope
+    scope for scope in os.environ.get("OIDC_SCOPES", "openid").split() if scope
 )
 OIDC_ROLE_CLAIM_PATH = os.environ.get("OIDC_ROLE_CLAIM_PATH", "roles").strip()
 OIDC_EDITOR_ROLES = env_csv("OIDC_EDITOR_ROLES")
 OIDC_MODERATOR_ROLES = env_csv("OIDC_MODERATOR_ROLES")
+OIDC_ADMIN_ROLES = env_csv("OIDC_ADMIN_ROLES")
 OIDC_POST_LOGOUT_REDIRECT_URI = f"{WAGTAILADMIN_BASE_URL}/"
 
 if OIDC_ENABLED:
@@ -288,6 +289,7 @@ if OIDC_ENABLED:
         "OIDC_ROLE_CLAIM_PATH": OIDC_ROLE_CLAIM_PATH,
         "OIDC_EDITOR_ROLES": OIDC_EDITOR_ROLES,
         "OIDC_MODERATOR_ROLES": OIDC_MODERATOR_ROLES,
+        "OIDC_ADMIN_ROLES": OIDC_ADMIN_ROLES,
     }
     missing_oidc_settings = [
         name for name, value in required_oidc_settings.items() if not value

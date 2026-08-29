@@ -47,7 +47,14 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             raise PermissionDenied("Multiple local accounts use the OIDC email")
 
         user = users[0]
-        if not user.is_active or user.is_staff or user.is_superuser:
+        account_is_linked = bool(
+            sociallogin.account.pk and sociallogin.account.user_id == user.pk
+        )
+        if (
+            not user.is_active
+            or user.is_staff
+            or (user.is_superuser and not account_is_linked)
+        ):
             raise PermissionDenied("OIDC cannot link to this local account")
         return user, email
 
@@ -59,18 +66,30 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
         email = self._validated_email(claims)
         if not email:
             self._deny(request)
-        target_groups = self._target_groups(claims)
+        target_groups, is_admin = self._target_access(claims)
 
-        if not target_groups:
+        if not target_groups and not is_admin:
             # Revoke only identities already bound by provider + sub. A first
             # rejected login must not mutate an unrelated email-matched user.
-            if sociallogin.account.pk and sociallogin.user and sociallogin.user.pk:
-                self._sync_groups(sociallogin.user, set())
+            if (
+                sociallogin.account.pk
+                and sociallogin.user
+                and sociallogin.user.pk
+                and not sociallogin.user.is_staff
+            ):
+                self._sync_authorization(sociallogin.user, set(), is_admin=False)
             self._deny(request)
 
         user = sociallogin.user
         if user and user.pk:
-            if not user.is_active or user.is_staff or user.is_superuser:
+            account_is_linked = bool(
+                sociallogin.account.pk and sociallogin.account.user_id == user.pk
+            )
+            if (
+                not user.is_active
+                or user.is_staff
+                or (user.is_superuser and not account_is_linked)
+            ):
                 self._deny(request)
             if self._email_conflicts(user, email):
                 self._deny(request)
@@ -78,7 +97,9 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             # Passwords remain exclusively for unlinked break-glass staff.
             if not sociallogin.account.pk:
                 user.set_unusable_password()
-            self._sync_existing_user(user, claims, email, target_groups)
+            self._sync_existing_user(
+                user, claims, email, target_groups, is_admin=is_admin
+            )
 
         # Mark the single trusted campus email as verified before allauth
         # persists a new user or attaches a SocialAccount.
@@ -90,20 +111,20 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
         email = self._validated_email(claims)
         if not email:
             self._deny(request)
-        target_groups = self._target_groups(claims)
-        if not target_groups:
+        target_groups, is_admin = self._target_access(claims)
+        if not target_groups and not is_admin:
             self._deny(request)
 
         with transaction.atomic():
             user = super().save_user(request, sociallogin, form=form)
             user.is_active = True
             user.is_staff = False
-            user.is_superuser = False
+            user.is_superuser = is_admin
             user.set_unusable_password()
             self._apply_profile(user, claims, email)
             user.save()
             self._ensure_primary_email(user, email)
-            self._sync_groups(user, target_groups)
+            self._sync_authorization(user, target_groups, is_admin=is_admin)
         return user
 
     def on_authentication_error(
@@ -130,14 +151,14 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             return ""
         return email
 
-    def _target_groups(self, claims):
+    def _target_access(self, claims):
         roles = claim_at_path(claims, settings.OIDC_ROLE_CLAIM_PATH)
         if (
             not isinstance(roles, Sequence)
             or isinstance(roles, (str, bytes))
             or any(not isinstance(role, str) for role in roles)
         ):
-            return set()
+            return set(), False
 
         role_values = set(roles)
         groups = set()
@@ -145,7 +166,8 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             groups.add("Editors")
         if role_values.intersection(settings.OIDC_MODERATOR_ROLES):
             groups.add("Moderators")
-        return groups
+        is_admin = bool(role_values.intersection(settings.OIDC_ADMIN_ROLES))
+        return groups, is_admin
 
     def _email_conflicts(self, user, email):
         if not email:
@@ -158,12 +180,12 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             .exists()
         )
 
-    def _sync_existing_user(self, user, claims, email, target_groups):
+    def _sync_existing_user(self, user, claims, email, target_groups, *, is_admin):
         with transaction.atomic():
             self._apply_profile(user, claims, email)
             user.save()
             self._ensure_primary_email(user, email)
-            self._sync_groups(user, target_groups)
+            self._sync_authorization(user, target_groups, is_admin=is_admin)
 
     def _apply_profile(self, user, claims, email):
         user.email = email
@@ -203,6 +225,20 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
 
         user.groups.remove(*(groups[name] for name in MANAGED_GROUPS))
         user.groups.add(*(groups[name] for name in target_groups))
+
+    def _sync_authorization(self, user, target_groups, *, is_admin):
+        with transaction.atomic():
+            self._sync_groups(user, target_groups)
+            update_fields = []
+            if user.is_superuser != is_admin:
+                user.is_superuser = is_admin
+                update_fields.append("is_superuser")
+            if user.is_staff:
+                # SSO administrators are deliberately excluded from Django admin.
+                user.is_staff = False
+                update_fields.append("is_staff")
+            if update_fields:
+                user.save(update_fields=update_fields)
 
     def _deny(self, request):
         raise ImmediateHttpResponse(
