@@ -59,22 +59,25 @@ Wagtail admin SSO uses the CMS OpenID Connect provider. It is
 disabled by default so local development and emergency access continue to work
 without an identity-provider connection.
 
-| Variable               | Required when enabled | Example                          |
-|------------------------|-----------------------|----------------------------------|
-| `OIDC_ENABLED`         | yes                   | `1`                              |
-| `OIDC_SERVER_URL`      | yes                   | `https://cms-beta.union.rpi.edu` |
-| `OIDC_CLIENT_ID`       | yes                   | `student-government-wagtail`     |
-| `OIDC_CLIENT_SECRET`   | yes                   | (provider-issued secret)         |
-| `OIDC_SCOPES`          | no                    | `openid profile email`           |
-| `OIDC_ROLE_CLAIM_PATH` | yes                   | `roles` or `realm_access.roles`  |
-| `OIDC_EDITOR_ROLES`    | yes                   | `stugov-editor`                  |
-| `OIDC_MODERATOR_ROLES` | yes                   | `stugov-moderator`               |
+| Variable               | Required when enabled | Example                              |
+|------------------------|-----------------------|--------------------------------------|
+| `OIDC_ENABLED`         | yes                   | `1`                                  |
+| `OIDC_SERVER_URL`      | yes                   | `https://cms-beta.union.rpi.edu`     |
+| `OIDC_CLIENT_ID`       | yes                   | `student-government-wagtail`         |
+| `OIDC_CLIENT_SECRET`   | yes                   | (provider-issued secret)             |
+| `OIDC_SCOPES`          | no                    | `openid`                             |
+| `OIDC_ROLE_CLAIM_PATH` | yes                   | `groups`                             |
+| `OIDC_EDITOR_ROLES`    | yes                   | `organization.1.member`              |
+| `OIDC_MODERATOR_ROLES` | yes                   | `organization.1.officer`             |
+| `OIDC_ADMIN_ROLES`     | yes                   | `organization.408.tag.President`     |
 
 Role values are comma-separated and matched exactly. Editor roles synchronize
-the Wagtail `Editors` group and moderator roles synchronize `Moderators`. A
-user with both receives both groups; removal at the IdP removes the associated
-group at the next SSO authentication. SSO never grants Django `is_staff` or
-superuser status.
+the Wagtail `Editors` group and moderator roles synchronize `Moderators`.
+The Web Technologies Committee President role grants full Wagtail permissions
+through Django's superuser flag while deliberately leaving `is_staff` false,
+so it does not grant access to `/django-admin/`. Role removal is applied at the
+next SSO authentication; users downgrade to any remaining mapped role or are
+denied access when none remain.
 
 Register these production URLs with the provider:
 
@@ -88,7 +91,8 @@ publish an HTTPS `end_session_endpoint` that accepts `client_id` and
 Once enabled, visiting `/admin/` starts campus SSO. `/admin/login/` remains an
 unadvertised local break-glass login, and `/django-admin/` remains local-only.
 Keep at least one active local staff/superuser account with a tested password.
-Regular accounts linked to SSO have their local passwords disabled.
+Accounts linked to SSO have their local passwords disabled, including the
+Wagtail administrator account.
 
 The first deployment adds allauth's standard database tables. The existing
 container startup command runs the required migrations automatically. To roll
