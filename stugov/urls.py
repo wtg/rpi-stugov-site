@@ -10,6 +10,20 @@ from search import views as search_views
 
 urlpatterns = [
     path("django-admin/", admin.site.urls),
+]
+
+if settings.OIDC_ENABLED:
+    # This exact route takes precedence over Wagtail's built-in logout view.
+    # Wagtail's sidebar already POSTs to /admin/logout/, so no template
+    # customization is required.
+    from sso.views import oidc_logout
+
+    urlpatterns += [
+        path("admin/logout/", oidc_logout, name="sso_logout"),
+    ]
+
+urlpatterns += [
+    path("accounts/", include("allauth.urls")),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("search/", search_views.search, name="search"),

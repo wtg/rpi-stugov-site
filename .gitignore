@@ -4,6 +4,7 @@
 tmp/
 media/
 .env*
+!.env.example
 
 *.py[cod]
 *.egg
