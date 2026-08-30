@@ -67,17 +67,28 @@ without an identity-provider connection.
 | `OIDC_CLIENT_SECRET`   | yes                   | (provider-issued secret)             |
 | `OIDC_SCOPES`          | no                    | `openid`                             |
 | `OIDC_ROLE_CLAIM_PATH` | yes                   | `groups`                             |
-| `OIDC_EDITOR_ROLES`    | yes                   | `organization.1.member`              |
-| `OIDC_MODERATOR_ROLES` | yes                   | `organization.1.officer`             |
-| `OIDC_ADMIN_ROLES`     | yes                   | `organization.408.tag.President`     |
 
-Role values are comma-separated and matched exactly. Editor roles synchronize
-the Wagtail `Editors` group and moderator roles synchronize `Moderators`.
-The Web Technologies Committee President role grants full Wagtail permissions
-through Django's superuser flag while deliberately leaving `is_staff` false,
-so it does not grant access to `/django-admin/`. Role removal is applied at the
-next SSO authentication; users downgrade to any remaining mapped role or are
-denied access when none remain.
+Claim-to-permission mappings are managed under **Wagtail Admin > Snippets >
+OIDC group mappings**. Mappings match CMS group values exactly and
+case-sensitively. Each mapping can grant one or more Wagtail/Django groups,
+full Wagtail administrator access, or both. Only users with the mapping model's
+Django permissions can edit this policy; Wagtail superusers have those
+permissions automatically.
+
+The initial migration seeds this policy:
+
+| CMS `groups` claim | Wagtail access |
+|--------------------|----------------|
+| `organization.1.member` | Editors |
+| `organization.1.officer` | Moderators |
+| `organization.408.tag.President` | Full Wagtail administrator |
+
+Full Wagtail administrator access uses Django's superuser flag while
+deliberately leaving `is_staff` false, so it does not grant access to
+`/django-admin/`. Mapped group memberships are tracked separately so SSO can
+revoke them without touching unrelated, manually assigned groups. Mapping and
+claim changes are applied at the user's next SSO authentication; users
+downgrade to any remaining mapped access or are denied when none remains.
 
 Register these production URLs with the provider:
 

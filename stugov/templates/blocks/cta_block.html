@@ -17,8 +17,7 @@
 {% if value.page %}
     {% pageurl value.page as href %}
 {% elif value.url %}
-    {% with value.url as href %}
-    {% endwith %}
+    {% firstof value.url as href %}
 {% endif %}
 
 {% if href %}
