@@ -28,7 +28,7 @@ services:
     depends_on:
       - wagtail
     ports:
-      - "8000:80"
+      - "${PORT:-8000}:80"
     volumes:
       - static_files:/var/www/data/static/
       - ${HOST_DATA_DIR:-./data/}/media/:/var/www/data/media/
