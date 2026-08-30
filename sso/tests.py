@@ -1,27 +1,28 @@
-from unittest.mock import MagicMock, Mock, patch
+from importlib import import_module
 from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.models import SocialAccount, SocialLogin
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
-from django.contrib.sessions.middleware import SessionMiddleware
+from wagtail.snippets.models import get_snippet_models
 
 from .adapter import CampusSocialAccountAdapter
+from .models import OIDCGroupMapping, OIDCManagedGroupMembership
 from .oidc import append_query_parameters, claim_at_path, discovery_url, merged_claims
 
 
 OIDC_SETTINGS = {
     "OIDC_PROVIDER_ID": "campus",
     "OIDC_ROLE_CLAIM_PATH": "realm_access.roles",
-    "OIDC_EDITOR_ROLES": ("site-editor",),
-    "OIDC_MODERATOR_ROLES": ("site-moderator",),
-    "OIDC_ADMIN_ROLES": ("organization.408.tag.President",),
     "SOCIALACCOUNT_EMAIL_AUTHENTICATION": True,
 }
 
@@ -86,6 +87,81 @@ class OIDCHelperTests(SimpleTestCase):
         )
 
 
+class OIDCMappingConfigurationTests(TestCase):
+    def test_initial_mappings_match_current_cms_policy(self):
+        expected = {
+            "organization.1.member": ({"Editors"}, False),
+            "organization.1.officer": ({"Moderators"}, False),
+            "organization.408.tag.President": (set(), True),
+        }
+
+        for claim_value, (group_names, grants_admin) in expected.items():
+            with self.subTest(claim_value=claim_value):
+                mapping = OIDCGroupMapping.objects.get(claim_value=claim_value)
+                self.assertTrue(mapping.enabled)
+                self.assertEqual(mapping.grants_wagtail_admin, grants_admin)
+                self.assertEqual(
+                    set(mapping.wagtail_groups.values_list("name", flat=True)),
+                    group_names,
+                )
+
+    def test_mapping_is_registered_as_a_wagtail_snippet(self):
+        self.assertIn(OIDCGroupMapping, get_snippet_models())
+
+    def test_initial_migration_backfills_previously_managed_memberships(self):
+        user = get_user_model().objects.create_user(
+            username="existing-sso-user",
+            email="existing@example.edu",
+        )
+        editors = Group.objects.get(name="Editors")
+        user.groups.add(editors)
+        SocialAccount.objects.create(
+            user=user,
+            provider="campus",
+            uid="existing-campus-user",
+        )
+        OIDCManagedGroupMembership.objects.filter(user=user).delete()
+        migration = import_module("sso.migrations.0001_initial")
+
+        migration.seed_oidc_mappings(apps, schema_editor=None)
+
+        self.assertTrue(
+            OIDCManagedGroupMembership.objects.filter(
+                user=user,
+                group=editors,
+            ).exists()
+        )
+
+    def test_wagtail_only_superuser_can_manage_mappings(self):
+        user = get_user_model().objects.create_user(
+            username="oidc-admin",
+            email="admin@example.edu",
+            is_superuser=True,
+            is_staff=False,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse(f"{OIDCGroupMapping.snippet_viewset.url_namespace}:list")
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_editor_cannot_manage_mappings(self):
+        user = get_user_model().objects.create_user(
+            username="editor",
+            email="editor@example.edu",
+        )
+        user.groups.add(Group.objects.get(name="Editors"))
+        self.client.force_login(user)
+
+        self.assertFalse(user.has_perm("sso.change_oidcgroupmapping"))
+        response = self.client.get(
+            reverse(f"{OIDCGroupMapping.snippet_viewset.url_namespace}:list")
+        )
+        self.assertNotEqual(response.status_code, 200)
+
+
 @override_settings(**OIDC_SETTINGS)
 class CampusAdapterTests(TestCase):
     def setUp(self):
@@ -95,6 +171,16 @@ class CampusAdapterTests(TestCase):
         self.adapter = CampusSocialAccountAdapter(self.request)
         self.editors, _ = Group.objects.get_or_create(name="Editors")
         self.moderators, _ = Group.objects.get_or_create(name="Moderators")
+        editor_mapping, _ = OIDCGroupMapping.objects.update_or_create(
+            claim_value="site-editor",
+            defaults={"enabled": True, "grants_wagtail_admin": False},
+        )
+        editor_mapping.wagtail_groups.set([self.editors])
+        moderator_mapping, _ = OIDCGroupMapping.objects.update_or_create(
+            claim_value="site-moderator",
+            defaults={"enabled": True, "grants_wagtail_admin": False},
+        )
+        moderator_mapping.wagtail_groups.set([self.moderators])
 
     def sociallogin(self, claims, *, user=None, saved_account=False, uid="campus-123"):
         if user is None:
@@ -141,6 +227,12 @@ class CampusAdapterTests(TestCase):
         self.assertEqual(user.last_name, "Student")
         self.assertEqual(set(user.groups.values_list("name", flat=True)), {"Editors"})
         self.assertTrue(
+            OIDCManagedGroupMembership.objects.filter(
+                user=user,
+                group=self.editors,
+            ).exists()
+        )
+        self.assertTrue(
             EmailAddress.objects.get(user=user, email="student@example.edu").verified
         )
         self.assertTrue(
@@ -178,6 +270,67 @@ class CampusAdapterTests(TestCase):
             self.adapter.pre_social_login(self.request, login)
 
         self.assertEqual(raised.exception.response.status_code, 403)
+
+    def test_disabled_mapping_grants_no_access(self):
+        OIDCGroupMapping.objects.filter(claim_value="site-editor").update(
+            enabled=False
+        )
+        login = self.sociallogin(self.claims("site-editor"))
+
+        with self.assertRaises(ImmediateHttpResponse) as raised:
+            self.adapter.pre_social_login(self.request, login)
+
+        self.assertEqual(raised.exception.response.status_code, 403)
+
+    def test_mapping_can_grant_an_arbitrary_wagtail_group(self):
+        reviewers = Group.objects.create(name="Reviewers")
+        mapping = OIDCGroupMapping.objects.create(claim_value="site-reviewer")
+        mapping.wagtail_groups.add(reviewers)
+        login = self.sociallogin(self.claims("site-reviewer"))
+
+        self.adapter.pre_social_login(self.request, login)
+        user = self.adapter.save_user(self.request, login)
+
+        self.assertEqual(
+            set(user.groups.values_list("name", flat=True)), {"Reviewers"}
+        )
+        self.assertTrue(
+            OIDCManagedGroupMembership.objects.filter(
+                user=user,
+                group=reviewers,
+            ).exists()
+        )
+
+    def test_mapping_edit_replaces_only_previously_managed_groups(self):
+        user = get_user_model().objects.create_user(
+            username="existing",
+            email="student@example.edu",
+        )
+        unrelated = Group.objects.create(name="Unrelated")
+        reviewers = Group.objects.create(name="Reviewers")
+        user.groups.add(self.editors, unrelated)
+        OIDCManagedGroupMembership.objects.create(user=user, group=self.editors)
+        OIDCGroupMapping.objects.get(claim_value="site-editor").wagtail_groups.set(
+            [reviewers]
+        )
+        login = self.sociallogin(
+            self.claims("site-editor"), user=user, saved_account=True
+        )
+
+        self.adapter.pre_social_login(self.request, login)
+
+        self.assertEqual(
+            set(user.groups.values_list("name", flat=True)),
+            {"Reviewers", "Unrelated"},
+        )
+        self.assertEqual(
+            set(
+                OIDCManagedGroupMembership.objects.filter(user=user).values_list(
+                    "group__name", flat=True
+                )
+            ),
+            {"Reviewers"},
+        )
 
     def test_existing_linked_president_can_log_in_repeatedly(self):
         user = get_user_model().objects.create_user(
@@ -242,6 +395,7 @@ class CampusAdapterTests(TestCase):
         )
         unrelated = Group.objects.create(name="Unrelated")
         user.groups.add(self.editors, unrelated)
+        OIDCManagedGroupMembership.objects.create(user=user, group=self.editors)
         login = self.sociallogin(
             self.claims("site-moderator"), user=user, saved_account=True
         )
@@ -259,6 +413,12 @@ class CampusAdapterTests(TestCase):
         )
         unrelated = Group.objects.create(name="Unrelated")
         user.groups.add(self.editors, self.moderators, unrelated)
+        OIDCManagedGroupMembership.objects.bulk_create(
+            [
+                OIDCManagedGroupMembership(user=user, group=self.editors),
+                OIDCManagedGroupMembership(user=user, group=self.moderators),
+            ]
+        )
         login = self.sociallogin(self.claims(), user=user, saved_account=True)
 
         with self.assertRaises(ImmediateHttpResponse) as raised:
@@ -277,6 +437,7 @@ class CampusAdapterTests(TestCase):
             is_staff=False,
         )
         user.groups.add(self.editors)
+        OIDCManagedGroupMembership.objects.create(user=user, group=self.editors)
         login = self.sociallogin(self.claims(), user=user, saved_account=True)
 
         with self.assertRaises(ImmediateHttpResponse) as raised:

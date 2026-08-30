@@ -6,17 +6,16 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.core.exceptions import ImproperlyConfigured, PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import render
 
+from .models import OIDCGroupMapping, OIDCManagedGroupMembership
 from .oidc import claim_at_path, merged_claims
 
 
 logger = logging.getLogger(__name__)
-MANAGED_GROUPS = frozenset({"Editors", "Moderators"})
 
 
 class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -161,12 +160,16 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             return set(), False
 
         role_values = set(roles)
-        groups = set()
-        if role_values.intersection(settings.OIDC_EDITOR_ROLES):
-            groups.add("Editors")
-        if role_values.intersection(settings.OIDC_MODERATOR_ROLES):
-            groups.add("Moderators")
-        is_admin = bool(role_values.intersection(settings.OIDC_ADMIN_ROLES))
+        mappings = OIDCGroupMapping.objects.filter(
+            enabled=True,
+            claim_value__in=role_values,
+        ).prefetch_related("wagtail_groups")
+        groups = {
+            group
+            for mapping in mappings
+            for group in mapping.wagtail_groups.all()
+        }
+        is_admin = any(mapping.grants_wagtail_admin for mapping in mappings)
         return groups, is_admin
 
     def _email_conflicts(self, user, email):
@@ -212,23 +215,36 @@ class CampusSocialAccountAdapter(DefaultSocialAccountAdapter):
             address.primary = True
             address.save(update_fields=["verified", "primary"])
 
-    def _sync_groups(self, user, target_groups):
-        groups = {
-            group.name: group
-            for group in Group.objects.filter(name__in=MANAGED_GROUPS)
+    def _sync_managed_groups(self, user, target_groups):
+        target_group_ids = {group.pk for group in target_groups}
+        tracked_memberships = list(
+            OIDCManagedGroupMembership.objects.filter(user=user)
+        )
+        tracked_group_ids = {
+            membership.group_id for membership in tracked_memberships
         }
-        missing = MANAGED_GROUPS.difference(groups)
-        if missing:
-            raise ImproperlyConfigured(
-                "Missing Wagtail SSO groups: " + ", ".join(sorted(missing))
-            )
 
-        user.groups.remove(*(groups[name] for name in MANAGED_GROUPS))
-        user.groups.add(*(groups[name] for name in target_groups))
+        stale_group_ids = tracked_group_ids.difference(target_group_ids)
+        if stale_group_ids:
+            user.groups.remove(*stale_group_ids)
+            OIDCManagedGroupMembership.objects.filter(
+                user=user,
+                group_id__in=stale_group_ids,
+            ).delete()
+
+        if target_group_ids:
+            user.groups.add(*target_group_ids)
+            OIDCManagedGroupMembership.objects.bulk_create(
+                [
+                    OIDCManagedGroupMembership(user=user, group_id=group_id)
+                    for group_id in target_group_ids.difference(tracked_group_ids)
+                ],
+                ignore_conflicts=True,
+            )
 
     def _sync_authorization(self, user, target_groups, *, is_admin):
         with transaction.atomic():
-            self._sync_groups(user, target_groups)
+            self._sync_managed_groups(user, target_groups)
             update_fields = []
             if user.is_superuser != is_admin:
                 user.is_superuser = is_admin
