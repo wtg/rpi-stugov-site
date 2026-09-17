@@ -1,0 +1,89 @@
+{# ================================================================== #}
+{# REPRESENTATIVE FORM LANDING PAGE — Shown after successful submission #}
+{#                                                                     #}
+{# Wagtail's AbstractEmailForm renders this template automatically    #}
+{# after a form is successfully submitted. The template name must     #}
+{# follow the pattern: {app}/{model}_landing.html                     #}
+{#                                                                     #}
+{# The page variable is still the RepsFormPage instance, so we        #}
+{# can access thank_you_text and other fields.                        #}
+{# ================================================================== #}
+
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block body_class %}template-repsformpage-landing{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+    {# Success icon #}
+    <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+        <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+
+    {# ---- Council Members ---- #}
+    {% with reps=form.get_class_representatives %}
+    {% if reps %}
+        <section class="mb-14">
+            {# Tier heading — centered, with a short accent underline #}
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 inline-block">Your {{ form.get_class }} Representatives Are:</h2>
+                <div class="w-16 h-0.5 bg-rpi-red mx-auto mt-2"></div>
+            </div>
+    
+            {# Compact grid — flex-wrap keeps partial rows centered.   #}
+            {# Fixed card widths let rows wrap naturally at any count. #}
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
+                {% for rep in reps %}
+                    <div class="w-36 sm:w-40 md:w-44">
+                        {% include "includes/member_card.html" with member=rep.member roles=rep.roles featured=False include_email=True %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% else %}
+        <p class="text-gray-500 text-center">No {{ form.get_class.lower }} reps found.</p>
+    {% endif %}
+    {% endwith %}
+
+    {% with reps=form.get_fsl_representatives %}
+    {% if reps %}
+        <section class="mb-14">
+            {# Tier heading — centered, with a short accent underline #}
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 inline-block">Your {{ form.get_fsl_status }} Representatives Are:</h2>
+                <div class="w-16 h-0.5 bg-rpi-red mx-auto mt-2"></div>
+            </div>
+    
+            {# Compact grid — flex-wrap keeps partial rows centered.   #}
+            {# Fixed card widths let rows wrap naturally at any count. #}
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
+                {% for rep in reps %}
+                    <div class="w-36 sm:w-40 md:w-44">
+                        {% include "includes/member_card.html" with member=rep.member roles=rep.roles featured=False include_email=True %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% else %}
+        <p class="text-gray-500 text-center">No {{ form.get_fsl_status.lower }} reps found.</p>
+    {% endif %}
+    {% endwith %}
+
+
+    <div class="mt-8">
+        <a href="{% pageurl page %}"
+           class="inline-block px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
+                  hover:bg-rpi-red-dark transition-colors">
+            Back to Form
+        </a>
+        <a href="/"
+           class="inline-block px-6 py-3 bg-rpi-red text-white font-medium rounded-lg
+                  hover:bg-rpi-red-dark transition-colors">
+            Return to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
