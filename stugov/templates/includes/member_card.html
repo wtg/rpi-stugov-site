@@ -86,6 +86,14 @@
         {% for role in roles %}
         <p class="text-xs text-rpi-red font-medium mt-0.5">{{ role }}</p>
         {% endfor %}
+        
+        {% if include_email %}
+            {% if member.email %}
+            <div class="text-xs text-rpi-red font-medium mt-0.5">
+                <a href="mailto:{{ member.email|safe }}" class="underline text-red-700 hover:text-red-900 visited:text-purple-600">{{ member.email|safe }}</a>
+            </div>
+            {% endif %}
+        {% endif %}
 
         {# Class year (compact — skip major to keep cards small) #}
         {% if member.class_year == 'graduate' %}

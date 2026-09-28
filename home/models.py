@@ -125,6 +125,7 @@ class HomePage(Page):
         "events.EventIndexPage",
         "forms_ext.ComplaintFormPage",
         "records.RecordIndexPage",
+        "rep_finder.RepsFormPage",
     ]
     max_count = 1  # Only one homepage allowed
 
