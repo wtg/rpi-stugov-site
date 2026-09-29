@@ -98,7 +98,7 @@ class Role(index.Indexed, ClusterableModel):
 
     name = models.CharField(
         max_length=255,
-        help_text="Displayed role text, e.g. 'Class of 2027 Representative'.",
+        help_text="Role name, text in [brackets] will not be displayed.",
     )
     positions = models.PositiveIntegerField(
         null=True,
@@ -159,12 +159,13 @@ class MemberProfile(index.Indexed, ClusterableModel):
     admins can search for members by name in the snippet chooser.
     """
 
+    rcs_id = models.CharField(
+        max_length=9,
+        unique=True,
+        verbose_name="RCS ID",
+    )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(
-        blank=True,
-        verbose_name="Email (RCS ID)",
-    )
     photo = models.ForeignKey(
         get_image_model_string(),
         null=True,
@@ -195,7 +196,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
             [
                 FieldPanel("first_name"),
                 FieldPanel("last_name"),
-                FieldPanel("email"),
+                FieldPanel("rcs_id"),
                 FieldPanel("photo"),
             ],
             heading="Basic Info",
@@ -216,7 +217,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
     search_fields = [
         index.SearchField("first_name"),
         index.SearchField("last_name"),
-        index.FilterField("email"),
+        index.FilterField("rcs_id"),
     ]
 
     class Meta:
@@ -225,8 +226,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
         verbose_name_plural = "Member Profiles"
 
     def __str__(self):
-        email_display = self.email or "No RCS ID"
-        return f"{self.first_name} {self.last_name} ({email_display})"
+        return f"{self.first_name} {self.last_name} ({self.rcs_id})"
 
 
 # ===========================================================================
@@ -664,7 +664,7 @@ class CommitteePage(Page, MembershipDisplay):
         placements = self.member_placements.all()
         
         result.append({
-            'tier_id': len(result),
+            'tier_id': max(1, len(result)),
             'tier_name': "Members",
             'placements': ({
                     'member': placement.member,

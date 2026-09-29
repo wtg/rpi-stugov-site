@@ -95,7 +95,7 @@ class Command(BaseCommand):
                 continue
 
             try:
-                member = MemberProfile.objects.get(email=f"{rcs_id}@rpi.edu")
+                member = MemberProfile.objects.get(rcs_id=rcs_id)
             except MemberProfile.DoesNotExist:
                 self.stderr.write(self.style.ERROR(f"Row {i}: member with RCS ID {rcs_id} not found, skipping."))
                 stats["errors"] += 1
