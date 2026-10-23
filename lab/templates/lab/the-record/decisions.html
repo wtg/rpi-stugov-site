@@ -1,0 +1,59 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Decisions{% endblock %}
+{% block content %}
+<h1>Decisions</h1>
+<div class="mt-2 max-w-3xl space-y-2">
+  <p>Decisions here are Senate motions. The Senate's secretary records each motion's status once, at the vote, in the Senate's Notion Motions table, with a link to the motion's text in Box.</p>
+  <p>{{ other_bodies_line }} <a href="{% url 'lab:the_record:meetings' %}#files-only">Where those files are &rarr;</a></p>
+  {% include 'lab/the-record/_source.html' with s=sources.motions %}
+  {% include 'lab/the-record/_source.html' with s=sources.in_minutes %}
+</div>
+
+<form method="get" action="{% url 'lab:the_record:decisions' %}" aria-label="Filter decisions" class="mt-4 flex flex-wrap items-end gap-4">
+  <div>
+    <label for="f-q" class="block font-semibold">Search</label>
+    <input id="f-q" type="search" name="q" value="{{ q }}" autocomplete="off">
+  </div>
+  <div>
+    <label for="f-body" class="block font-semibold">Body</label>
+    <select id="f-body" name="body">{% for v, l in body_options %}<option value="{{ v }}"{% if v == f_body %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  </div>
+  <div>
+    <label for="f-status" class="block font-semibold">Status</label>
+    <select id="f-status" name="status">{% for v, l in status_options %}<option value="{{ v }}"{% if v == f_status %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  </div>
+  <div>
+    <label for="f-term" class="block font-semibold">Term</label>
+    <select id="f-term" name="term">{% for v, l in term_options %}<option value="{{ v }}"{% if v == f_term %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  </div>
+  <button type="submit" class="btn">Show decisions</button>
+</form>
+
+<p class="mt-4 font-semibold" role="status">{{ count }} decision{{ count|pluralize }}</p>
+
+{% if eboard_panel %}
+<section aria-labelledby="eb-records-h" class="mt-4">
+  <h2 id="eb-records-h" style="margin-top:0">Executive Board</h2>
+  <p>The Executive Board records its decisions in its minutes, published as files.</p>
+  <div class="mt-3">{% include 'lab/the-record/_box_folder.html' with folder=box_folders.eboard %}</div>
+</section>
+{% elif rows %}
+<table class="data-table">
+  <caption class="sr-only">Decisions</caption>
+  <thead><tr><th scope="col">Status</th><th scope="col">Ref</th><th scope="col">Decision</th><th scope="col">Body</th><th scope="col">Last action</th></tr></thead>
+  <tbody>
+    {% for d in rows %}
+    <tr>
+      <td data-label="Status">{% include 'lab/the-record/_chip.html' with chip=d.chip label=d.status_label %}</td>
+      <td data-label="Ref" class="font-mono">{{ d.ref }}</td>
+      <th scope="row" data-label="Decision" class="font-normal"><a href="{{ d.url }}">{{ d.plain_summary }}</a>{% if d.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</th>
+      <td data-label="Body">{{ d.body_name }}</td>
+      <td data-label="Last action"><time datetime="{{ d.last.date|date:'Y-m-d' }}">{{ d.last.date_label }}</time><br><span class="text-sm text-muted">{{ d.last.text }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="mt-2">No decisions match. <a href="{% url 'lab:the_record:decisions' %}">Clear filters.</a></p>
+{% endif %}
+{% endblock %}

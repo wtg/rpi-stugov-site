@@ -1,0 +1,27 @@
+{# One seat: a filled card (person) or a vacant card. Needs `card`; `show_office_hours` defaults to on. #}
+{% with seat=card.seat person=card.person rule=card.rule %}
+{% if person %}
+<article class="card flex h-full flex-col gap-3">
+  <div class="flex items-center gap-3">
+    <span class="avatar" aria-hidden="true">{{ person.initials }}</span>
+    <div class="min-w-0">
+      <h3 class="text-lg font-bold leading-snug"><a href="{% url 'lab:your_reps:person' person.slug %}">{{ person.name }}</a>{% if person.class_label %} <span class="font-normal text-muted">{{ person.class_label }}</span>{% endif %}</h3>
+      <p class="text-muted">{{ seat.seat }}</p>
+    </div>
+  </div>
+  {% if card.others %}<p class="text-sm">Also: {{ card.others|join:", " }}</p>{% endif %}
+  <p class="text-sm">Office hours: Not listed</p>
+  <div class="mt-auto">{% include "lab/your-reps/_contact.html" with contact=card.contact seat_name=seat.seat %}</div>
+</article>
+{% else %}
+<article class="card card-vacant flex h-full flex-col gap-2">
+  <h3 class="text-lg font-bold leading-snug">{% if seat.status == "elect_fall" %}To be elected this fall{% else %}Seat open{% endif %}</h3>
+  <p class="text-muted">{{ seat.seat }}</p>
+  <p class="text-sm"><span class="font-semibold">How this seat is filled:</span> {{ rule.filled_by }}</p>
+  {% if rule.cite %}{% include "lab/your-reps/_cite.html" with art=rule.cite %}{% endif %}
+  {% if rule.draft %}<p>{% include "lab/your-reps/_draft.html" with why=rule.draft %}</p>{% endif %}
+  <p class="text-sm"><a href="{% url 'lab:your_reps:how' %}#fill-rules">{% if rule.elected %}How elections work →{% else %}How this seat is filled →{% endif %}</a></p>
+  <div class="mt-auto pt-1">{% include "lab/your-reps/_contact.html" with contact=card.contact seat_name=seat.seat %}</div>
+</article>
+{% endif %}
+{% endwith %}

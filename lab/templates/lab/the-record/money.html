@@ -1,0 +1,45 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Contingency funds{% endblock %}
+{% block content %}
+<h1>Contingency funds</h1>
+
+<section class="mt-4 border border-line rounded bg-rowalt p-4 space-y-2 max-w-4xl" aria-label="Summary">
+  <p>Under the Union Constitution, the Executive Board prepares and approves the Union budget and hands out Union money. The budget and the records of all extra spending and allocations are public documents. {% include 'lab/the-record/_cite.html' with art='Art. VII §2' %}</p>
+  <p>No Union money may be spent without an Executive Board requisition (a formal spending approval), and RPI's Treasurer gets a copy of every transaction. {% include 'lab/the-record/_cite.html' with art='Art. XIV; Art. VI' %}</p>
+  <p>These four lines are pools printed on each E-Board agenda. They are not the full Union budget. {% include 'lab/the-record/_draft.html' with why='E-Board bylaws' %}</p>
+</section>
+
+<p class="mt-4">Full budget status: FY27 Union budget: not posted on this site. It is a public document under the Constitution. {% include 'lab/the-record/_cite.html' with art='Art. VII §2' %} {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+
+<section aria-labelledby="funds-h">
+  <h2 id="funds-h">The four pools</h2>
+  {% if budget_stale %}
+  <p class="mt-2 border border-line rounded p-3 bg-rowalt max-w-3xl" data-stale-quote>These figures are a quote from {{ budget_as_of }}. The newest E-Board meeting on record is <a href="{{ latest_eboard.detail_url }}"><span class="font-mono">{{ latest_eboard.ref }}</span>, {{ latest_eboard.date_label }}</a>{% if latest_eboard.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}, so they may be out of date. Check that agenda for current balances.</p>
+  {% endif %}
+  <p class="text-sm text-muted max-w-3xl mt-2">In production this table is a quotation from one agenda; the site links the newest E-Board agenda and never keeps its own copy. {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+  <table class="data-table">
+    <caption>As printed on {{ budget.source }}</caption>
+    <thead><tr><th scope="col">Fund</th><th scope="col">What it's for</th><th scope="col">Started with</th><th scope="col">Left (as printed)</th></tr></thead>
+    <tbody>
+      {% for b in budget.lines %}
+      <tr>
+        <th scope="row" data-label="Fund" class="font-normal">{{ b.fund }}</th>
+        <td data-label="What it's for">{{ b.plain }}{% if b.draft %} {% include 'lab/the-record/_draft.html' with why=b.draft %}{% endif %}</td>
+        <td data-label="Started with">{{ b.initial_label }}</td>
+        <td data-label="Left (as printed)">{{ b.current_label }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include 'lab/the-record/_source.html' with s=sources.quoted_budget %}
+  <h3 class="mt-4 mb-2">Latest figures: the newest E-Board agenda in Box</h3>
+  {% include 'lab/the-record/_box_folder.html' with folder=box_folders.eboard %}
+</section>
+
+<section aria-labelledby="alloc-h">
+  <h2 id="alloc-h">Allocations this year</h2>
+  <p class="max-w-3xl">Allocations are public records under the Union Constitution (Art. VII §2). This site will link to them wherever finance publishes them. It won't retype them.</p>
+</section>
+
+<div class="mt-8">{% include 'lab/the-record/_source.html' with s=sources.wagtail %}</div>
+{% endblock %}

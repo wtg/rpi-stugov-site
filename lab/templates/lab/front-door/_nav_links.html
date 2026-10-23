@@ -1,0 +1,5 @@
+<ul class="plain navlist">
+  {% for item in nav %}
+    <li><a class="tap navlink" href="{{ item.url }}"{% if item.key == section %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+  {% endfor %}
+</ul>

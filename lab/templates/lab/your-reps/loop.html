@@ -1,0 +1,63 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}You said, we did{% endblock %}
+{% block content %}
+<h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">You said, we did</h1>
+
+<div class="card mt-4 space-y-3">
+  <p class="text-lg">Each item is owned by a seat, not a person, so it passes to the next officeholder. Status is updated after meetings. 'Not possible' outcomes are shown too. {% include "lab/your-reps/_draft.html" with why="Site owner" %}</p>
+  <p class="text-sm text-muted">This board is a site practice, not a duty set by the Constitution.</p>
+  <p class="font-semibold">Running this for real needs a committee (e.g. Senate Communications and Engagement) to commit to weekly triage. Not yet agreed.</p>
+  <p>All items below are {% include "lab/your-reps/_sample.html" %} examples made up for this prototype.</p>
+</div>
+
+<div class="mt-4">
+  <p><span class="font-semibold">Where these come from:</span> Each item is a row in a Senate committee's Notion Issues database. The committee updates it there, and this page shows rows marked Public, read-only. Nothing on this page is typed into the website. Only the Senate tracks issues publicly; other bodies' decisions appear in their minutes.</p>
+  {% include "lab/your-reps/_source.html" with s=sources.issues %}
+</div>
+
+<p class="mt-4">Stuck? Students can force a binding student vote with a petition signed by 10% of Union members. {% include "lab/your-reps/_cite.html" with art="Art. XII §1" %} <a href="{% url 'lab:your_reps:how' %}#powers">All your powers →</a></p>
+
+<form method="get" class="mt-6 rounded-xl border border-line bg-white p-4" aria-label="Filter items">
+  <h2 class="text-lg font-bold">Filter</h2>
+  <div class="mt-2 grid gap-3 sm:grid-cols-3">
+    <div>
+      <label for="f-status" class="block font-semibold">Status</label>
+      <select class="field" id="f-status" name="status">
+        <option value="">Any status</option>
+        {% for k, label in status_options %}<option value="{{ k }}"{% if f_status == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-topic" class="block font-semibold">Topic</label>
+      <select class="field" id="f-topic" name="topic">
+        <option value="">Any topic</option>
+        {% for k, label in topic_options %}<option value="{{ k }}"{% if f_topic == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-cons" class="block font-semibold">Group</label>
+      <select class="field" id="f-cons" name="constituency">
+        <option value="">Any group</option>
+        {% for k, label in cons_options %}<option value="{{ k }}"{% if f_cons == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="mt-3 flex flex-wrap items-center gap-3">
+    <button class="btn-button" type="submit">Apply filters</button>
+    {% if filtered %}<a class="inline-flex min-h-[44px] items-center" href="{% url 'lab:your_reps:loop' %}">Clear filters</a>{% endif %}
+  </div>
+</form>
+
+<section aria-labelledby="items-h" class="mt-6">
+  <h2 id="items-h" class="text-2xl font-bold">Items</h2>
+  <p class="mt-1" role="status">Showing {{ issues|length }} of {{ total }} items.</p>
+  {% if issues %}
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for i in issues %}<li>{% include "lab/your-reps/_issue_card.html" %}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="mt-3">No items match those filters. <a href="{% url 'lab:your_reps:loop' %}">Clear filters</a></p>
+  {% endif %}
+  {% include "lab/your-reps/_source.html" with s=sources.issues %}
+</section>
+{% endblock %}

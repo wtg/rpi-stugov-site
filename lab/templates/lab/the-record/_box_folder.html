@@ -1,0 +1,8 @@
+{% if folder.embed_url %}
+  <p class="mb-2"><a href="{{ folder.shared_url }}">Open the folder in Box</a> <span class="text-sm text-muted">({{ folder.path }})</span></p>
+  <iframe title="Box folder: {{ folder.path }}" src="{{ folder.embed_url }}" class="hidden sm:block w-full h-[28rem] border border-line"></iframe>
+{% else %}
+  <div class="border-2 border-dashed border-muted rounded p-4 text-sm bg-rowalt">
+    Box folder embed goes here: <span class="font-mono">{{ folder.path }}</span>. The shared link hasn't been added yet.
+  </div>
+{% endif %}

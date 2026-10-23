@@ -1,0 +1,2 @@
+{% comment %}Source line for a Box file or folder. "link checked" appears only beside a link that exists. `missing` is the source line shown when there is no link.{% endcomment %}
+{% if has_link %}{% include 'lab/front-door/_source.html' with s=sources.file %}{% else %}{% include 'lab/front-door/_source.html' with s=missing %}{% endif %}

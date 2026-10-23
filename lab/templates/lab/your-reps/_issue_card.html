@@ -1,0 +1,21 @@
+<article class="card flex h-full flex-col gap-2" id="{{ i.id }}">
+  <p class="flex flex-wrap items-center gap-2">{% include "lab/your-reps/_chip.html" %} {% include "lab/your-reps/_sample.html" %}</p>
+  <h3 class="text-lg font-bold leading-snug">{{ i.title }}</h3>
+  <dl class="grid grid-cols-[auto,1fr] gap-x-3 gap-y-0.5 text-sm">
+    <dt class="text-muted">Topic</dt><dd>{{ i.topic_name }}</dd>
+    <dt class="text-muted">Owner seat</dt><dd>{{ i.owner_seat }}</dd>
+    <dt class="text-muted">Source</dt><dd>{{ i.source }}</dd>
+    <dt class="text-muted">Raised</dt><dd><time datetime="{{ i.raised_on|date:'Y-m-d' }}">{{ i.raised_on|date:"j M Y" }}</time></dd>
+    <dt class="text-muted">For</dt><dd>{{ i.constituency_labels|join:"; " }}</dd>
+  </dl>
+  {% if i.stale %}<p class="text-sm font-semibold text-muted">{{ i.stale_label }}</p>{% endif %}
+  {% if i.outcome %}<p><span class="font-semibold">{% if i.status == "not_possible" %}Why not:{% else %}Outcome:{% endif %}</span> {{ i.outcome }}</p>{% endif %}
+  {% if i.updates %}
+  <details class="mt-auto text-sm">
+    <summary class="cursor-pointer font-semibold">Updates ({{ i.updates|length }})</summary>
+    <ol class="mt-2 space-y-2 border-l-2 border-line pl-3">
+      {% for u in i.updates %}<li><time class="font-semibold" datetime="{{ u.date|date:'Y-m-d' }}">{{ u.date|date:"j M Y" }}</time><br>{{ u.text }}</li>{% endfor %}
+    </ol>
+  </details>
+  {% else %}<p class="mt-auto text-sm text-muted">No updates yet.</p>{% endif %}
+</article>

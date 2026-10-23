@@ -1,0 +1,22 @@
+{# rows, caption, past (bool) #}
+<table class="data-table">
+  <caption>{{ caption }}</caption>
+  <thead><tr>
+    <th scope="col">Ref</th><th scope="col">Body</th><th scope="col">Record</th><th scope="col">Date</th><th scope="col">Location</th><th scope="col">Agenda</th><th scope="col">Minutes</th>
+  </tr></thead>
+  <tbody>
+    {% for m in rows %}
+    <tr>
+      <th scope="row" data-label="Ref" class="font-normal"><a href="{{ m.detail_url }}" class="font-mono">{{ m.ref }}</a>{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</th>
+      <td data-label="Body">{{ m.body_name }}</td>
+      <td data-label="Record">{{ m.adapter_label }}{% if m.adapter == 'site' %} <span class="text-sm text-muted">(example)</span>{% endif %}</td>
+      <td data-label="Date"><time datetime="{{ m.starts_iso }}">{{ m.when_long }}</time><br><span class="text-sm text-muted">{{ m.time_label }}</span></td>
+      <td data-label="Location">{{ m.location }}</td>
+      <td data-label="Agenda">{% if m.agenda_state == 'missing' %}{% if m.past %}No agenda link on the meeting record yet{% else %}Agenda not posted yet{% endif %}{% else %}{% include 'lab/the-record/_file_cell.html' with state=m.agenda_state url=m.agenda_url sample=m.sample past=past %}{% endif %}</td>
+      <td data-label="Minutes">{% include 'lab/the-record/_file_cell.html' with state=m.minutes_state url=m.minutes_url sample=m.sample days=m.days_since approved=m.approved_label approved_iso=m.minutes_approved past=past %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" data-label="Result">No meetings match.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

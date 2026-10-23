@@ -1,0 +1,84 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Decision: {{ d.title }}{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb" class="text-sm mb-2"><a href="{% url 'lab:the_record:decisions' %}">Decisions</a> &rsaquo; <span class="font-mono">{{ d.ref }}</span></nav>
+<h1>{{ d.plain_summary }}{% if d.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</h1>
+<p class="mt-1">{{ d.title }} · <span class="font-mono">{{ d.ref }}</span></p>
+<p class="mt-1 text-sm text-muted">{{ d.body_name }} · {{ d.term_label }} · {{ d.type|capfirst }} · Requested by {{ d.requested_by }}</p>
+{% if d.agenda_source %}<p class="text-sm text-muted">Source: {{ d.agenda_source }}</p>{% endif %}
+
+<section aria-labelledby="stage-heading">
+  <h2 id="stage-heading">Where it stands</h2>
+  <p>{% include 'lab/the-record/_chip.html' with chip=d.chip label=d.status_label %}</p>
+  <ol class="stepper" aria-label="Stages of a decision">
+    {% for s in steps %}
+      <li class="{{ s.state }}"{% if s.state == 'current' %} aria-current="step"{% endif %}>
+        {% if s.state == 'done' %}<span aria-hidden="true">&#10003;</span> {{ s.label }} <span class="sr-only">completed</span>
+        {% else %}{{ s.label }}{% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+  <p class="text-sm text-muted max-w-3xl">These steps describe what the public record shows. The Union Constitution has no sign-off or veto step after a Senate or Executive Board vote. The Judicial Board can later rule a decision unconstitutional. {% include 'lab/the-record/_cite.html' with art='Art. VII §3' %}</p>
+</section>
+
+<section aria-labelledby="votes-heading">
+  <h2 id="votes-heading">Votes needed</h2>
+  {% if d.threshold_obj %}
+    <p>Votes needed: {{ d.threshold_obj.needs }}{% if d.threshold_obj.derived %} (<abbr title="{{ derived_title }}">{{ d.threshold_obj.derived }}, derived</abbr>){% endif %}
+      {% include 'lab/the-record/_cite.html' with art=d.threshold_obj.cite %}</p>
+  {% else %}
+    <p>Votes needed: not set by the Constitution {% include 'lab/the-record/_draft.html' with why=d.draft %}</p>
+  {% endif %}
+  <p class="mt-1"><a href="{% url 'lab:the_record:rules' %}#votes">All vote thresholds &rarr;</a></p>
+</section>
+
+<section aria-labelledby="last-heading">
+  <h2 id="last-heading">Latest action</h2>
+  <p><time datetime="{{ d.last.date|date:'Y-m-d' }}">{{ d.last.date_label }}</time> · {{ d.last.text }}</p>
+</section>
+
+<section aria-labelledby="hist-heading">
+  <h2 id="hist-heading">History</h2>
+  <table class="data-table">
+    <caption class="sr-only">History of this decision</caption>
+    <thead><tr><th scope="col">Date</th><th scope="col">Meeting</th><th scope="col">What happened</th></tr></thead>
+    <tbody>
+      {% for h in d.history %}
+      <tr>
+        <td data-label="Date"><time datetime="{{ h.date|date:'Y-m-d' }}">{{ h.date_label }}</time></td>
+        <td data-label="Meeting">{% if h.meeting_url %}<a href="{{ h.meeting_url }}" class="font-mono">{{ h.meeting_ref }}</a>{% else %}<span class="font-mono">{{ h.meeting_ref }}</span>{% endif %}</td>
+        <td data-label="What happened">{{ h.text }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if d.outcome_note %}
+<section aria-labelledby="note-heading">
+  <h2 id="note-heading">Outcome note</h2>
+  <p>{{ d.outcome_note }}</p>
+</section>
+{% endif %}
+
+<section aria-labelledby="src-heading">
+  <h2 id="src-heading">Sources</h2>
+  <ul class="list-disc pl-5">
+    {% if meeting_obj %}
+      <li>Agenda: {% if meeting_obj.agenda_state == 'linked' %}<a href="{{ meeting_obj.agenda_url }}">PDF in Box</a>{% else %}No link on the meeting record{% endif %}
+        (<a href="{{ meeting_obj.detail_url }}">meeting page</a>)</li>
+      <li>Minutes: {% if meeting_obj.minutes_state == 'linked' %}<a href="{{ meeting_obj.minutes_url }}">PDF in Box</a>{% else %}No link on the meeting record{% endif %}</li>
+    {% else %}
+      <li>Agenda and minutes: not linked for this sample decision.</li>
+    {% endif %}
+    <li>Motion text: <a href="{{ d.motion_file }}">{{ d.motion_file_name }}</a> (Word file in Box, as PDF){% if d.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</li>
+  </ul>
+  {% include 'lab/the-record/_source.html' with s=sources.motions %}
+</section>
+
+<section aria-labelledby="share-heading">
+  <h2 id="share-heading">Share this decision</h2>
+  <label for="share" class="block text-sm font-semibold">Link to paste into Discord</label>
+  <input id="share" type="text" readonly value="{{ share_url }}" class="font-mono" style="max-width:40rem" onfocus="this.select()">
+</section>
+{% endblock %}

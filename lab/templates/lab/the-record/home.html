@@ -1,0 +1,96 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+{% if notice %}
+  <div role="alert" class="border-2 border-yellow-800 bg-yellow-100 p-3 mb-4">{{ notice.text }}</div>
+{% endif %}
+
+<h1>The Rensselaer Union's public record</h1>
+<p class="mt-2 max-w-3xl">When the Student Senate and Executive Board meet, what they decided, and what is printed about the money. Every list is read-only. Files live in Box. Each body keeps its records its own way; this site reads them read-only.</p>
+
+<section aria-labelledby="next-heading">
+  <h2 id="next-heading">Next meeting for each body</h2>
+  <div class="grid gap-4 md:grid-cols-2">
+    {% for c in cards %}
+      <div>
+      {% if c.next %}
+        {% include 'lab/the-record/_meeting_card.html' with m=c.next src=c.next.record_source %}
+      {% else %}
+        <article class="border border-dashed border-muted rounded bg-white p-4 h-full flex flex-col">
+          <h3 class="text-lg font-bold">{{ c.body.name }}</h3>
+          <p class="mt-2">No upcoming {{ c.body.short }} meeting listed.
+            {% if c.last %}Last met <time datetime="{{ c.last.starts_iso }}">{{ c.last.date_label }}</time> <a href="{{ c.last.detail_url }}">See that meeting &rarr;</a>{% endif %}</p>
+          <div class="mt-auto pt-2">{% if c.last %}{% include 'lab/the-record/_source.html' with s=c.last.record_source %}{% elif c.body.key == 'senate' %}{% include 'lab/the-record/_source.html' with s=sources.meeting_senate %}{% else %}{% include 'lab/the-record/_source.html' with s=sources.meeting_eboard %}{% endif %}</div>
+        </article>
+      {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <ul class="list-disc pl-5 mt-3 space-y-1">
+    {% for b in folder_bodies %}
+    <li>{{ b.name }}: publishes records as files &middot; <a href="{% url 'lab:the_record:meetings' %}?body={{ b.key }}">Open folder<span class="sr-only"> for the {{ b.name }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% include 'lab/the-record/_source.html' with s=sources.folder_only %}
+</section>
+
+<section aria-labelledby="latest-heading">
+  <h2 id="latest-heading">Latest decisions</h2>
+  <table class="data-table">
+    <caption class="sr-only">Latest decisions</caption>
+    <thead><tr><th scope="col">Status</th><th scope="col">Decision</th><th scope="col">Body</th><th scope="col">Date</th></tr></thead>
+    <tbody>
+      {% for d in latest %}
+      <tr>
+        <td data-label="Status">{% include 'lab/the-record/_chip.html' with chip=d.chip label=d.status_label %}</td>
+        <th scope="row" data-label="Decision" class="font-normal"><a href="{{ d.url }}">{{ d.plain_summary }}</a>{% if d.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</th>
+        <td data-label="Body">{{ d.body_name }}</td>
+        <td data-label="Date"><time datetime="{{ d.last.date|date:'Y-m-d' }}">{{ d.last.date_label }}</time></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include 'lab/the-record/_source.html' with s=sources.motions %}
+  <p class="mt-1"><a href="{% url 'lab:the_record:decisions' %}">All decisions &rarr;</a></p>
+</section>
+
+<section aria-labelledby="status-heading">
+  <h2 id="status-heading">Are the records posted?</h2>
+  <ul class="list-none p-0 divide-y divide-line border-y border-line">
+    {% for m in strip %}
+    <li class="py-2">
+      <a href="{{ m.detail_url }}" class="font-mono">{{ m.ref }}</a> · <time datetime="{{ m.starts_iso }}">{{ m.date_label }}</time> ·
+      Agenda: {% if m.agenda_state == 'missing' %}<span aria-hidden="true">&#10007;</span> no link on the meeting record{% else %}<span aria-hidden="true">&#10003;</span> posted{% endif %} ·
+      Minutes: {% if m.minutes_state == 'missing' %}<span aria-hidden="true">&#10007;</span> not posted ({{ m.days_since }} days){% else %}<span aria-hidden="true">&#10003;</span> posted{% endif %}
+      {% if m.sample %}{% include 'lab/the-record/_sample.html' %}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if strip_more %}<p class="mt-1 text-sm"><a href="{% url 'lab:the_record:meetings' %}#past-heading">{{ strip_more }} earlier meetings &rarr;</a></p>{% endif %}
+  {% include 'lab/the-record/_source.html' with s=sources.meeting_senate %}
+  {% include 'lab/the-record/_source.html' with s=sources.meeting_eboard %}
+  {% include 'lab/the-record/_source.html' with s=sources.file %}
+</section>
+
+<section aria-labelledby="funds-heading">
+  <h2 id="funds-heading">Money</h2>
+  <p class="max-w-3xl">Contingency fund balances are printed on each E-Board agenda.
+    {% if latest_eboard %}Latest: {% if latest_eboard.agenda_url %}<a href="{{ latest_eboard.agenda_url }}"><span class="font-mono">{{ latest_eboard.ref }}</span>, {{ latest_eboard.date_label }}</a>{% else %}<a href="{{ latest_eboard.detail_url }}"><span class="font-mono">{{ latest_eboard.ref }}</span>, {{ latest_eboard.date_label }}</a>{% endif %}{% if latest_eboard.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %} &rarr;{% endif %}</p>
+  {% include 'lab/the-record/_source.html' with s=sources.file %}
+  <p class="mt-1"><a href="{% url 'lab:the_record:money' %}">Contingency funds, as last quoted &rarr;</a></p>
+</section>
+
+<section aria-labelledby="bodies-heading">
+  <h2 id="bodies-heading">What each body does</h2>
+  <dl class="divide-y divide-line border-y border-line">
+    {% for b in bodies %}
+    <div class="py-2 sm:grid sm:grid-cols-4 sm:gap-4">
+      <dt class="font-semibold">{{ b.name }}</dt>
+      <dd class="sm:col-span-3">{{ b.text }} {% include 'lab/the-record/_cite.html' with art=b.cite %}</dd>
+    </div>
+    {% endfor %}
+  </dl>
+  <p class="mt-2"><a href="{% url 'lab:the_record:rules' %}#votes">Votes needed and what students can force &rarr;</a></p>
+  {% include 'lab/the-record/_source.html' with s=sources.wagtail %}
+</section>
+{% endblock %}

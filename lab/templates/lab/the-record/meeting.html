@@ -1,0 +1,212 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}{{ m.body_name }} meeting #{{ m.number }}{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb" class="text-sm mb-2"><a href="{% url 'lab:the_record:meetings' %}">Meetings</a> &rsaquo; <span class="font-mono">{{ m.ref }}</span></nav>
+<h1>{{ m.body_name }} · Meeting #{{ m.number }}{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</h1>
+<p class="font-mono mt-1">{{ m.ref }}</p>
+
+<section aria-labelledby="about-heading">
+  <h2 id="about-heading">About this meeting</h2>
+  <dl class="border-y border-line divide-y divide-line">
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Agenda</dt>
+      <dd>
+        {% if m.agenda_state == 'linked' %}
+          <a href="{{ m.agenda_url }}" class="btn block sm:inline-block text-center">Open agenda (PDF in Box)</a> {% if m.sample %}{% include 'lab/the-record/_sample.html' %}{% endif %}
+        {% elif m.past %}
+          No agenda link on the meeting record yet
+        {% else %}
+          Agenda not posted yet
+        {% endif %}
+      </dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4"><dt class="font-semibold">Term</dt><dd>{{ m.term_label }}</dd></div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4"><dt class="font-semibold">Date and time</dt><dd><time datetime="{{ m.starts_iso }}">{{ m.when_long }}</time>, {{ m.time_label }}</dd></div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4"><dt class="font-semibold">Location</dt><dd>{{ m.location }}</dd></div>
+    {% if m.remote %}
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4"><dt class="font-semibold">Remote link</dt><dd>Webex link not published</dd></div>
+    {% endif %}
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Minutes</dt>
+      <dd>
+        {% if m.minutes_state == 'linked' %}
+          <a href="{{ m.minutes_url }}">Open minutes (PDF in Box)</a> {% if m.sample %}{% include 'lab/the-record/_sample.html' %}{% endif %}
+          {% if m.approved_label %}· Approved <time datetime="{{ m.minutes_approved|date:'Y-m-d' }}">{{ m.approved_label }}</time>{% endif %}
+        {% elif m.past %}
+          Not posted ({{ m.days_since }} days since the meeting)
+        {% else %}
+          Not posted yet (the meeting hasn't happened)
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+  {% include 'lab/the-record/_source.html' with s=m.record_source %}
+  {% include 'lab/the-record/_source.html' with s=sources.file %}
+</section>
+
+<section aria-labelledby="quorum-heading" class="mt-6 border border-line rounded p-4 bg-rowalt">
+  <h2 id="quorum-heading" style="margin-top:0">Who votes</h2>
+  <p>
+    {{ snap.seats_constitution }} voting seats (Constitution) · {{ snap.totals.filled }} filled · {{ snap.totals.vacant }} vacant{% if m.body == 'senate' %} · {{ snap.totals.elect_fall }} first-year seats to be elected this fall{% endif %}
+    {% include 'lab/the-record/_cite.html' with art=snap.cite %}
+  </p>
+  <p class="mt-2">
+    {% if m.voting_listed %}Agenda header: {{ m.voting_listed }} voting members, {{ m.quorum }} needed for quorum (the minimum number who must be present to vote){% else %}Agenda header: Not recorded{% endif %}
+    {% if m.agenda_source %}<span class="block text-sm text-muted">Source: {{ m.agenda_source }}</span>{% endif %}
+  </p>
+  {% if m.voting_listed %}
+    <p class="text-sm text-muted mt-1">Would need "Voting members" and "Quorum" fields in {% if m.adapter == 'notion' %}the Senate's Notion meeting row{% else %}this site's meeting entry{% endif %}, typed once there instead of in the Word header. {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+  {% endif %}
+  {% if m.body == 'senate' and m.voting_listed %}
+    <p class="text-sm text-muted mt-1">{{ snap.agenda_header_note }} {% include 'lab/the-record/_draft.html' with why='Senate bylaws or rules' %}</p>
+  {% endif %}
+  <p class="mt-2">{{ chair.0 }} {% include 'lab/the-record/_cite.html' with art=chair.1 %}</p>
+  <details class="mt-3">
+    <summary class="cursor-pointer font-semibold py-1">Full membership</summary>
+    <div class="mt-2">{% include 'lab/the-record/_snapshot.html' %}</div>
+  </details>
+  <div class="mt-2">{% include 'lab/the-record/_source.html' with s=sources.roster %}</div>
+</section>
+
+<section aria-labelledby="agenda-heading">
+  <h2 id="agenda-heading">Agenda</h2>
+  {% if m.body == 'senate' %}
+  <nav aria-label="How this agenda is shown" class="mt-2">
+    <ul class="flex flex-wrap gap-x-5 gap-y-1 list-none p-0 m-0">
+      <li><a href="{{ request.path }}" class="inline-block py-1{% if agenda_view == 'document' %} font-bold{% endif %}"{% if agenda_view == 'document' %} aria-current="page"{% endif %}>As the document (today)</a></li>
+      <li><a href="{{ items_url }}" class="inline-block py-1{% if agenda_view == 'items' %} font-bold{% endif %}"{% if agenda_view == 'items' %} aria-current="page"{% endif %}>Item by item (option: only if the Senate drafts agendas in Notion)</a></li>
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% if agenda_view == 'document' %}
+    <p class="text-sm text-muted mt-2">Agendas are written in Word and published as PDF in the body's Box folder.</p>
+    {% if m.agenda_state == 'linked' %}
+      <p class="mt-3"><a href="{{ m.agenda_url }}" class="btn block sm:inline-block text-center">Open agenda (PDF)</a>{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</p>
+      {% if m.embed_url %}
+      <iframe title="Box preview: {{ m.document_name }}" src="{{ m.embed_url }}" class="hidden sm:block w-full h-[28rem] border border-line mt-3"></iframe>
+      {% endif %}
+    {% elif m.past %}
+      <div class="border-2 border-dashed border-muted rounded p-4 text-sm bg-rowalt mt-3">Box preview of <span class="font-mono">{{ m.document_name }}</span> goes here. The link hasn't been added to the meeting record yet.</div>
+      <p class="mt-3">No agenda link on the meeting record yet. This page will show the agenda as soon as the record has one.</p>
+    {% else %}
+      <p class="mt-3">The agenda hasn't been posted yet. This page will show it as soon as the meeting record has an agenda link.</p>
+    {% endif %}
+    <div class="mt-2">{% include 'lab/the-record/_source.html' with s=sources.file %}</div>
+    {% if m.prototype_note %}<p class="text-sm text-muted mt-1 border border-dashed border-line rounded p-2" data-prototype-note>{{ m.prototype_note }}</p>{% endif %}
+    {% if m.agenda_source %}<p class="text-sm text-muted mt-1">Source: {{ m.agenda_source }}</p>{% endif %}
+    {% if m.sections %}
+    <details class="mt-3">
+      <summary class="cursor-pointer font-semibold py-1">Prototype only: what this document says</summary>
+      <p class="text-sm text-muted mt-1">Typed from the PDF so testers can try tasks. The real site shows the Box preview and never retypes a Word document.</p>
+      <ol class="list-decimal pl-6 mt-2 space-y-2">
+        {% for s in m.sections %}
+        <li>{{ s.title }}
+          {% if s.items %}
+          <ol class="list-[lower-alpha] pl-6 mt-1 space-y-1">
+            {% for item in s.items %}<li>{{ item.title }}{% if item.who %}, {{ item.who }}{% endif %}</li>{% endfor %}
+          </ol>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+    {% if m.body == 'eboard' %}
+    <p class="text-sm text-muted mt-3">Item-by-item agendas aren't shown for the Executive Board. It writes its agendas in Word, and this site never retypes them.</p>
+    {% endif %}
+  {% else %}
+    <h3 class="mt-3">Option for the Senate: the agenda item by item</h3>
+    <p class="text-sm text-muted">The Senate hasn't chosen this. Today its agendas are written in Word. {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+    {% include 'lab/the-record/_source.html' with s=sources.agenda_items_option %}
+    <p class="text-sm text-muted">The "What is this?" notes are written on this site. They are explanations, not part of the record.
+      {% if m.agenda_source %}<br>Source: {{ m.agenda_source }}{% endif %}</p>
+    {% if m.sections %}
+      <p class="text-sm text-muted mt-1">Order of business is set by each body's own rules. The Constitution says only that Robert's Rules of Order apply where those are silent. {% include 'lab/the-record/_cite.html' with art='Art. VII §6' %}</p>
+      <ol class="list-decimal pl-6 mt-3 space-y-4">
+        {% for s in m.sections %}
+        <li>
+          <span class="font-semibold">{{ s.title }}</span>
+          <details class="my-1">
+            <summary class="cursor-pointer text-sm py-1">What is this?</summary>
+            <p class="text-sm pl-2">{{ s.plain }}
+              {% if s.cite %}{% include 'lab/the-record/_cite.html' with art=s.cite %}{% endif %}
+              {% if s.draft %}{% include 'lab/the-record/_draft.html' with why=s.draft %}{% endif %}</p>
+          </details>
+          {% if s.items %}
+          <ol class="list-[lower-alpha] pl-6 mt-1 space-y-1">
+            {% for item in s.items %}
+            <li>
+              {{ item.title }}
+              {% if item.who == 'Vacant' %}<em>Vacant</em>{% elif item.who %}<span class="text-muted">, {{ item.who }}</span>{% endif %}
+              {% if item.plain %}
+                <details class="my-1"><summary class="cursor-pointer text-sm py-1">What is this?</summary>
+                <p class="text-sm pl-2">{{ item.plain }} {% include 'lab/the-record/_cite.html' with art=item.cite %}</p></details>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+            <p class="text-sm text-muted">Nothing listed</p>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    {% elif m.agenda_state == 'missing' %}
+      {% if m.past %}
+      <p class="mt-3">No agenda link on the meeting record yet. This page will show the agenda as soon as the record has one.</p>
+      {% else %}
+      <p class="mt-3">The agenda hasn't been posted yet. This page will show it as soon as the meeting record has an agenda link.</p>
+      {% endif %}
+    {% else %}
+      <p class="mt-3">This agenda was written in Word, so it has no items in Notion. It's shown as the document. <a href="{{ m.agenda_url }}">Open the agenda PDF in Box.</a></p>
+    {% endif %}
+  {% endif %}
+</section>
+
+<section aria-labelledby="assoc-heading">
+  <h2 id="assoc-heading">Decisions from this meeting</h2>
+  {% if m.body == 'senate' %}
+    {% if assoc %}
+    <table class="data-table">
+      <caption class="sr-only">Decisions from this meeting</caption>
+      <thead><tr><th scope="col">Status</th><th scope="col">Ref</th><th scope="col">Decision</th></tr></thead>
+      <tbody>
+        {% for d in assoc %}
+        <tr>
+          <td data-label="Status">{% include 'lab/the-record/_chip.html' with chip=d.chip label=d.status_label %}</td>
+          <td data-label="Ref" class="font-mono">{{ d.ref }}</td>
+          <th scope="row" data-label="Decision" class="font-normal"><a href="{{ d.url }}">{{ d.plain_summary }}</a></th>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No motions recorded for this meeting in the Senate's Notion.</p>
+    {% endif %}
+    {% include 'lab/the-record/_source.html' with s=sources.motions %}
+  {% else %}
+    <p>The Executive Board records its decisions in its minutes.
+      {% if m.minutes_state == 'linked' %}<a href="{{ m.minutes_url }}">Open minutes (PDF in Box)</a>{% elif m.past %}Minutes: not posted ({{ m.days_since }} days since the meeting).{% else %}Minutes: not posted yet (the meeting hasn't happened).{% endif %}</p>
+    {% include 'lab/the-record/_source.html' with s=sources.in_minutes %}
+  {% endif %}
+</section>
+
+<section id="speak" aria-labelledby="speak-h" class="scroll-mt-4">
+  <h2 id="speak-h">Speak at this meeting</h2>
+  <p class="max-w-3xl">Anyone may speak during the Invitation to Speak or Press &amp; Visitor Q/A. <a href="{% url 'lab:the_record:meetings' %}#speak">How to speak at a meeting &rarr;</a></p>
+  <p class="mt-1"><a href="{{ m.ics }}" download="{{ m.body }}-{{ m.term_slug }}-{{ m.number }}.ics">Add to calendar</a></p>
+</section>
+
+<section aria-labelledby="files-heading">
+  <h2 id="files-heading">Files for this term</h2>
+  <h3 class="mb-2">{{ folder.label }}</h3>
+  {% include 'lab/the-record/_box_folder.html' %}
+  {% include 'lab/the-record/_source.html' with s=sources.file %}
+</section>
+
+<nav aria-label="Other meetings of this body" class="mt-8 flex flex-wrap justify-between gap-4 border-t border-line pt-4">
+  {% if prev_m %}<a href="{{ prev_m.detail_url }}">&larr; Previous: <span class="font-mono">{{ prev_m.ref }}</span></a>{% else %}<span class="text-muted">No earlier meeting listed</span>{% endif %}
+  {% if next_m %}<a href="{{ next_m.detail_url }}">Next: <span class="font-mono">{{ next_m.ref }}</span> &rarr;</a>{% else %}<span class="text-muted">No later meeting listed</span>{% endif %}
+</nav>
+{% endblock %}

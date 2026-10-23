@@ -1,0 +1,4 @@
+{# A grid of seat cards. Needs `cards`. #}
+<ul role="list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  {% for card in cards %}<li>{% include "lab/your-reps/_card.html" %}</li>{% endfor %}
+</ul>

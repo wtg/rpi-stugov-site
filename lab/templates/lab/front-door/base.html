@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ title }}{% endblock %} · RPI Student Government (prototype)</title>
+  <meta name="description" content="{{ description }}">
+  <meta property="og:title" content="{{ title }} · RPI Student Government (prototype)">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:type" content="website">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: {
+      ink: '#0b0c0c', muted: '#505a5f', line: '#b1b4b6', brand: '#a50015',
+      'brand-bright': '#d6001c', focus: '#ffdd00', panel: '#f3f2f1'
+    } } } };
+  </script>
+  <style>
+    :root { --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --brand:#a50015; --focus:#ffdd00; --panel:#f3f2f1; }
+    :focus-visible { outline: 3px solid #0b0c0c; box-shadow: 0 0 0 6px #ffdd00; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+           font-size: 1.125rem; line-height: 1.6; color: var(--ink); background: #fff; }
+    @media (min-width: 768px) { body { font-size: 1.1875rem; } }
+    body h1 { font-size: 2rem; line-height: 1.2; font-weight: 700; margin: 0 0 1rem; }
+    body h2 { font-size: 1.5rem; line-height: 1.3; font-weight: 700; margin: 2.25rem 0 .75rem; }
+    body h4 { font-size: 1.125rem; line-height: 1.3; font-weight: 700; margin: 1rem 0 .5rem; }
+    body h3 { font-size: 1.25rem; line-height: 1.3; font-weight: 700; margin: 1.25rem 0 .5rem; }
+    @media (min-width: 768px) { body h1 { font-size: 2.5rem; } }
+    body p, body dl, body table { margin: 0 0 1rem; }
+    body ul.bul { list-style: disc; padding-left: 1.5rem; margin: 0 0 1rem; }
+    body ol.num { list-style: decimal; padding-left: 1.5rem; margin: 0 0 1rem; }
+    body ul.plain { list-style: none; padding: 0; margin: 0 0 1rem; }
+    body .m0 { margin: 0; }
+    body dt { font-weight: 700; margin-top: .75rem; }
+    body dd { margin: 0 0 .5rem; }
+    body a { color: var(--brand); text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; }
+    body a:hover { text-decoration-thickness: 3px; }
+    body code { font-size: .9em; background: var(--panel); padding: 0 .25rem; overflow-wrap: anywhere; }
+    body summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+    body details { margin: 0 0 1rem; }
+    body abbr[title] { text-decoration: underline dotted; cursor: help; }
+
+    .fd-muted { color: #505a5f; }
+    .fd-sm { font-size: .9375rem; line-height: 1.5; }
+    .fd-xs { font-size: .8125rem; }
+    .fd-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .fd-flex { display: flex; } .fd-gap { gap: .75rem; }
+    .wrap { max-width: 64rem; margin: 0 auto; padding: 0 1rem; }
+    @media (min-width: 768px) { .wrap { padding: 0 1.5rem; } }
+    .prose { max-width: 40rem; }
+    .tap { display: inline-flex; align-items: center; min-height: 44px; }
+    .stack > li + li { margin-top: .75rem; }
+
+    body a.skip { position: absolute; left: -9999px; top: 0; background: var(--focus); color: var(--ink); padding: .75rem 1rem; z-index: 50; font-weight: 700; }
+    body a.skip:focus { left: 0; }
+
+    .banner { background: var(--ink); color: #fff; font-size: .9375rem; line-height: 1.5; padding: .5rem 0; }
+    .banner p { margin: 0 0 .25rem; }
+    body .banner a { color: #fff; display: inline-flex; align-items: center; min-height: 44px; }
+    .pill-sample, .pill-draft { display: inline-block; border: 1px solid var(--ink); border-radius: 999px; padding: 0 .5rem; font-size: .75rem; line-height: 1.5;
+                                font-weight: 700; color: var(--ink); background: #fff; vertical-align: middle; white-space: nowrap; position: relative; }
+    .pill-draft { border: 1px dashed var(--brand); color: var(--brand); }
+
+    .hdr { border-bottom: 1px solid var(--line); padding: .75rem 0; }
+    .hdr-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+    body a.wordmark { text-decoration: none; color: var(--ink); display: flex; flex-direction: column; min-height: 44px; justify-content: center; line-height: 1.2; }
+    .wordmark strong { font-size: 1.25rem; }
+    .wordmark span { font-size: .9375rem; color: var(--muted); }
+    .search { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-width: 100%; }
+    .search label { font-weight: 700; font-size: .9375rem; }
+    .search input { min-height: 44px; border: 2px solid var(--ink); padding: 0 .5rem; font: inherit; width: 9rem; min-width: 0; flex: 1 1 7rem; border-radius: 0; }
+    .search button { min-height: 44px; padding: 0 1rem; border: 2px solid var(--ink); background: var(--ink); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    .navlist { display: flex; flex-direction: column; }
+    body a.navlink { text-decoration: none; font-weight: 700; padding: 0 .75rem 0 0; }
+    body a.navlink[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; color: var(--ink); }
+    .nav-mobile summary { border: 2px solid var(--ink); padding: 0 1rem; display: inline-flex; margin-top: .5rem; }
+    .nav-desktop { display: none; }
+    @media (min-width: 768px) {
+      .nav-mobile { display: none; }
+      .nav-desktop { display: block; margin-top: .5rem; }
+      .nav-desktop .navlist { flex-direction: row; flex-wrap: wrap; gap: .25rem 1rem; margin: 0; }
+    }
+
+    .box { background: var(--panel); border-left: 6px solid var(--ink); padding: 1rem; margin: 0 0 1rem; }
+    .box > :last-child { margin-bottom: 0; }
+    .box-warn { background: #fff; border: 3px solid var(--brand); }
+    .box-alert { background: #fff; border-left: 10px solid var(--focus); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .dashed { border: 2px dashed var(--line); padding: 1rem; margin: 0 0 1rem; color: var(--muted); }
+    .card { border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; background: #fff; }
+    .card-vacant { border: 2px dashed var(--muted); }
+    .chip { display: inline-block; border: 2px solid var(--ink); border-radius: .25rem; padding: 0 .5rem; font-weight: 700; font-size: .9rem; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+
+    .row { position: relative; display: flex; align-items: center; gap: .75rem; justify-content: space-between; border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; background: #fff; }
+    .row:hover { border-color: var(--ink); }
+    .row:focus-within { outline: 3px solid #0b0c0c; box-shadow: 0 0 0 6px #ffdd00; }
+    .row a:focus-visible { outline: none; box-shadow: none; }
+    body .row-title { font-weight: 700; font-size: 1.25rem; }
+    body .row-title::after { content: ""; position: absolute; inset: 0; }
+    .row p { margin: 0; color: var(--muted); }
+    .chev { font-size: 1.5rem; color: var(--brand); flex: none; }
+    .verbs { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+    @media (min-width: 768px) { .verbs { grid-template-columns: 1fr 1fr; } }
+    .pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .grid-reps { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    @media (min-width: 768px) { .grid-reps { grid-template-columns: repeat(4, 1fr); } }
+    body a.pill-link { display: inline-flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: .25rem 1rem; border: 2px solid var(--brand); border-radius: 999px; font-weight: 700; text-decoration: none; background: #fff; }
+    body a.pill-link:hover { background: var(--panel); }
+    body a.btn { display: inline-flex; align-items: center; min-height: 44px; padding: .5rem 1.25rem; background: var(--ink); color: #fff; font-weight: 700; border-radius: .25rem; text-decoration: none; }
+    body a.btn-off { background: var(--panel); color: var(--ink); border: 2px dashed var(--ink); }
+
+    .tbl-wrap { overflow-x: auto; margin: 0 0 1rem; position: relative; }
+    .tbl-wrap a, .card a:not(.tap) { display: inline-block; padding: .625rem 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 34rem; }
+    caption { text-align: left; font-weight: 700; padding: .5rem 0; }
+    th, td { text-align: left; vertical-align: top; padding: .5rem .75rem .5rem 0; border-bottom: 1px solid var(--line); }
+    thead th { border-bottom: 2px solid var(--ink); }
+
+    .with-aside { display: block; }
+    .side-nav { display: none; }
+    @media (min-width: 1024px) {
+      .with-aside { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 2rem; }
+      .side-nav { display: block; position: sticky; top: 1rem; align-self: start; }
+    }
+    .jump { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+    .foot { border-top: 4px solid var(--ink); margin-top: 3rem; padding: 1.5rem 0 2.5rem; background: var(--panel); font-size: 1rem; }
+    .foot p { margin: 0 0 .5rem; }
+    main { padding-top: 1.5rem; padding-bottom: 1rem; }
+    main:focus { outline: none; }
+    iframe { max-width: 100%; }
+    ol.agenda > li { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <div class="banner">
+    <div class="wrap">
+      <details>
+        <summary style="cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600">Prototype layout · not the official site <span style="font-weight:400;margin-left:.4em;text-decoration:underline">What's real?</span></summary>
+        <p>Prototype layout for testing. Not the official site. Items marked {% include 'lab/front-door/_sample.html' %} are made up. Lines like 'synced {{ sync.notion_minutes_ago }} min ago' are simulated. Nothing here is connected to Notion or Box. Only the Senate's items would come from Notion. <a href="{% url 'lab:index' %}">All prototypes</a></p>
+      </details>
+      <p>
+        {% if officer %}Viewing as an officer (mock) · <a href="?officer=0">Hide officer links</a>
+        {% else %}Viewing as a student · <a href="?officer=1">Show officer links</a>{% endif %}
+      </p>
+      {% if officer %}<p>On the real site these links appear only to signed-in officers.</p>{% endif %}
+    </div>
+  </div>
+
+  <header class="hdr">
+    <div class="wrap">
+      <div class="hdr-top">
+        <a class="wordmark" href="{{ home_url }}"><strong>RPI Student Government</strong><span>Rensselaer Union</span></a>
+        <form class="search" role="search" action="{% url 'search' %}" method="get">
+          <label for="site-search">Search</label>
+          <input id="site-search" type="search" name="query" autocomplete="off">
+          <button type="submit">Search</button>
+        </form>
+      </div>
+      <nav class="nav-desktop" aria-label="Main">
+        {% include 'lab/front-door/_nav_links.html' %}
+      </nav>
+      <details class="nav-mobile">
+        <summary>Menu</summary>
+        <nav aria-label="Main">
+          {% include 'lab/front-door/_nav_links.html' %}
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <div class="wrap">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p><strong>Part of the Rensselaer Union</strong> · 110 8th Street, Troy, NY 12180</p>
+      {% if site.office_location %}<p>Office: {{ site.office_location }}</p>{% endif %}
+      {% if site.office_hours %}<p>Office hours: {{ site.office_hours }}</p>{% endif %}
+      {% if site.contact_email %}<p>Email: <a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></p>{% endif %}
+      {% if site.discord_url or site.instagram_url %}
+        <p>{% if site.discord_url %}<a class="tap" href="{{ site.discord_url }}">Union Discord</a>{% endif %}{% if site.discord_url and site.instagram_url %} · {% endif %}{% if site.instagram_url %}<a class="tap" href="{{ site.instagram_url }}">Instagram</a>{% endif %}</p>
+      {% endif %}
+      <p><a class="tap" href="{{ website_issue_url }}">Report a problem with this page</a> · <a class="tap" href="{{ take_part_url }}">Your rights as a Union member</a></p>
+      <p class="fd-sm fd-muted">Maintained by the Web Technologies Group · Page last reviewed: <time datetime="{{ sync.wagtail_reviewed|date:'Y-m-d' }}">{{ sync.wagtail_reviewed|date:'j M Y' }}</time></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,83 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+{% if notice %}
+  <div class="box box-alert" role="status">
+    <p><strong>{{ notice.text }}</strong></p>
+    <p class="fd-sm m0">Notice expires <time datetime="{{ notice.expires|date:'Y-m-d' }}">{{ notice.expires|date:'j M Y' }}</time>.</p>
+  </div>
+{% endif %}
+
+<h1>What do you need to do?</h1>
+
+<ul class="plain verbs">
+  {% for v in verbs %}
+    <li class="row">
+      <div>
+        <a class="row-title" href="{{ v.url }}">{{ v.title }}</a>
+        <p>{{ v.text }}</p>
+      </div>
+      <span class="chev" aria-hidden="true">&rsaquo;</span>
+    </li>
+  {% endfor %}
+</ul>
+
+<h2 id="this-week">This week</h2>
+{% include 'lab/front-door/_week.html' %}
+
+<h2 id="your-reps">Your representatives</h2>
+<p>Pick your group to see your senators and class rep.</p>
+<p id="reps-saved" hidden></p>
+<ul class="plain pills" id="reps-pills">
+  {% for p in pills %}
+    <li><a class="pill-link" data-reps-key="{{ p.key }}" data-reps-title="{{ p.title }}" href="{{ p.url }}">{{ p.label }}</a></li>
+  {% endfor %}
+</ul>
+<script>
+  // Progressive enhancement: remember the last group picked.
+  (function () {
+    try {
+      var pills = document.getElementById('reps-pills');
+      var saved = window.localStorage.getItem('fd-reps-group');
+      if (saved) {
+        var link = pills.querySelector('a[data-reps-key="' + saved + '"]');
+        if (link) {
+          var el = document.getElementById('reps-saved');
+          el.innerHTML = '';
+          el.appendChild(document.createTextNode('Your group: '));
+          var a = document.createElement('a');
+          a.href = link.href; a.textContent = link.getAttribute('data-reps-title');
+          el.appendChild(a);
+          el.appendChild(document.createTextNode(', '));
+          var c = document.createElement('a');
+          c.href = '#reps-pills'; c.textContent = 'change';
+          el.appendChild(c);
+          el.hidden = false;
+        }
+      }
+      pills.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('a[data-reps-key]') : null;
+        if (t) { try { window.localStorage.setItem('fd-reps-group', t.getAttribute('data-reps-key')); } catch (err) {} }
+      });
+    } catch (err) {}
+  })();
+</script>
+
+{% comment %}Production rule: this whole section collapses when there are no Senate motions with a recorded status; other bodies' decisions stay in their minutes. Sections never render empty.{% endcomment %}
+{% if decisions %}
+  <h2 id="recent">Recently decided</h2>
+  {% include 'lab/front-door/_decisions.html' %}
+  {% include 'lab/front-door/_source.html' with s=sources.motions %}
+  <p><a class="tap" href="{% url 'lab:front_door:meetings' %}#decided">All meetings and decisions</a></p>
+{% endif %}
+
+<h2>Your Union in one sentence each</h2>
+<dl class="prose">
+  {% for b in bodies %}
+    <dt><a href="{{ b.url }}">{{ b.term }}</a></dt>
+    <dd>{{ b.text }}</dd>
+  {% endfor %}
+</dl>
+{% include 'lab/front-door/_cite.html' with art="Art. VII" %}
+
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

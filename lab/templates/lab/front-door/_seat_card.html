@@ -1,0 +1,33 @@
+<li class="card{% if not c.holder %} card-vacant{% endif %}">
+  {% if c.holder %}
+    <div class="fd-flex fd-gap">
+      <span class="avatar" aria-hidden="true">{{ c.initials }}</span>
+      <div>
+        <h3 class="m0">{{ c.holder }}</h3>
+        <p class="m0">{{ c.seat }}{% if c.also %} · also {{ c.also }}{% endif %}</p>
+        {% if c.draft %}<p class="m0 fd-sm">{% include 'lab/front-door/_draft.html' with why=c.draft %}</p>{% endif %}
+        <p class="fd-sm m0">Contact: {% if c.contact.href %}<a href="{{ c.contact.href }}">{{ c.contact.text }}</a>{% else %}{{ c.contact.text }}{% endif %}{{ c.contact.note }}{% if c.contact.needs_draft %} {% include 'lab/front-door/_draft.html' with why="Site owner" %}{% endif %}</p>
+        <p class="fd-sm fd-muted m0">Office hours: Not listed (shown only if the member opts in)</p>
+      </div>
+    </div>
+  {% elif c.note %}
+    <h3 class="m0">{{ c.seat }}</h3>
+    <p class="m0"><strong>{{ c.note.text }}</strong></p>
+    {% include 'lab/front-door/_cite.html' with art=c.note.cite %}
+  {% elif c.status == "elect_fall" %}
+    <h3 class="m0">{{ c.seat }}</h3>
+    <p class="m0"><strong>To be elected this fall</strong></p>
+    <p class="fd-sm m0">First-year Senators are elected in the fall semester.</p>
+    {% include 'lab/front-door/_cite.html' with art="Art. VIII §3" %}
+  {% else %}
+    <h3 class="m0">{{ c.seat }}</h3>
+    <p class="m0"><strong>Vacant seat</strong></p>
+    {% if c.fill %}
+      <p class="fd-sm m0"><strong>How this seat gets filled:</strong> {{ c.fill.text }}
+        {% if c.fill.draft %}{% include 'lab/front-door/_draft.html' with why=c.fill.draft %}{% endif %}</p>
+      {% include 'lab/front-door/_cite.html' with art=c.fill.cite %}
+    {% endif %}
+    {% if c.fill_rule == "eb_peer" and c.chosen_by %}<p class="fd-sm m0">This seat is filled by {{ c.chosen_by }}.</p>{% endif %}
+    {% if c.action %}<p class="fd-sm m0"><a class="tap" href="{{ c.action.url }}">{{ c.action.label }}</a></p>{% endif %}
+  {% endif %}
+</li>

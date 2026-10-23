@@ -1,0 +1,79 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<div class="box box-warn prose" role="note">
+  <p class="m0"><strong>Draft for testing.</strong> The Union Constitution confirms that the Executive Board decides how Union money is handed out, but it doesn't say how a club applies. We have not yet confirmed the steps or who handles requests day to day. Do not use this page to apply.</p>
+</div>
+
+<h1>Get money for your club</h1>
+<p class="prose">The Executive Board hands out Union money, including <span>extra money clubs can ask for</span> during the year. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</p>
+{% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}
+
+<h2>What the Constitution says</h2>
+<ul class="bul prose">
+  {% for r in rules %}
+    <li>{{ r.text }}{% include 'lab/front-door/_cite.html' with art=r.cite %}</li>
+  {% endfor %}
+  <li>Five to seven Executive Board seats are reserved for club and organisation representatives.{% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}</li>
+</ul>
+
+<h2>What the last agenda said</h2>
+<div class="tbl-wrap" role="region" aria-label="Contingency funds table" tabindex="0">
+  <table>
+    <caption>Contingency funds as printed on {{ budget.source }}</caption>
+    <thead>
+      <tr><th scope="col">Fund</th><th scope="col">What it's for</th><th scope="col">Started with</th><th scope="col">Left (as printed)</th></tr>
+    </thead>
+    <tbody>
+      {% for f in funds %}
+        <tr>
+          <th scope="row">{{ f.name }}</th>
+          <td>{{ f.plain }}{% if f.draft %} {% include 'lab/front-door/_draft.html' with why=f.draft %}{% endif %}</td>
+          <td>{{ f.initial_text }}</td>
+          <td>{{ f.current_text }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'lab/front-door/_source.html' with s=sources.quoted_budget %}
+<p>
+  {% if folder.embed_url %}<a class="tap" href="{{ folder.shared_url }}">Latest figures: the newest E-Board agenda in Box</a>
+  {% else %}Latest figures: the newest E-Board agenda in Box. <span class="fd-muted">The folder link hasn't been added yet ({{ folder.path }}).</span>{% endif %}
+</p>
+<p class="prose">Allocations from these funds are public records under the Union Constitution. This site will link to them where finance publishes them; it won't retype them.</p>
+{% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}
+
+<h2>Before you start</h2>
+<ul class="bul prose">
+  <li>Who can apply: to be confirmed. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</li>
+  <li>What you'll need: to be confirmed. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</li>
+  <li>When the board meets: see the <a href="{{ meetings_url }}">meetings page</a>. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</li>
+  <li>How long a decision takes: to be confirmed. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</li>
+</ul>
+<p class="prose">The Constitution says only that club classification follows the Executive Board's bylaws.</p>
+{% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}
+
+<h2>Steps</h2>
+<ol class="num prose">
+  <li>Talk to your club's Club Financial Advisor. {% include 'lab/front-door/_draft.html' with why="Union staff process" %}</li>
+  <li>Submit a request (owner to confirm). {% include 'lab/front-door/_draft.html' with why="Union staff process" %}</li>
+  <li>The Executive Board considers it as a Proposal at a meeting. {% include 'lab/front-door/_draft.html' with why="Union staff process" %}</li>
+  <li>The decision is recorded in the minutes. {% include 'lab/front-door/_draft.html' with why="Union staff process" %}</li>
+</ol>
+<p><a class="btn btn-off" href="{{ start_url }}">Start request (link to be confirmed)</a></p>
+
+<h2 id="ballroom">Book the Union Ballroom</h2>
+<p class="prose">Requests to use the Ballroom for special events go to the Executive Board as a 'Special Ballroom Request'.</p>
+<p class="fd-sm fd-muted">Source: {{ ballroom_source }}</p>
+<p class="prose">The Executive Board manages the business of the facilities the Union runs.</p>
+{% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}
+<p><a class="tap" href="{{ eboard_meeting_url }}">See examples on the Executive Board meeting page</a></p>
+
+<h2>Other ways</h2>
+<ul class="bul prose">
+  <li>Ask the VP for Club Relations{% if vp %}: {{ vp }}{% endif %}.{% if vp %} {% include 'lab/front-door/_source.html' with s=sources.roster %}{% endif %}</li>
+  {% if site.office_hours %}<li>Visit the Union office. Hours: {{ site.office_hours }}{% if site.office_location %} ({{ site.office_location }}){% endif %}.</li>{% endif %}
+</ul>
+
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

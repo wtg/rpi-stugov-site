@@ -1,0 +1,197 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>{{ m.title }}</h1>
+<p><strong>{{ m.term_label }}</strong> · <time datetime="{{ m.date|date:'Y-m-d' }}">{{ m.date_long }}</time>, {{ m.time }} · {{ m.location }}</p>
+
+<div class="with-aside">
+  <aside class="side-nav">
+    <nav aria-label="On this page">
+      <ul class="plain">
+        <li><a class="tap" href="#summary">Summary</a></li>
+        <li><a class="tap" href="#speak">Speak</a></li>
+        <li><a class="tap" href="#agenda">Agenda</a></li>
+        <li><a class="tap" href="#decisions">Decisions</a></li>
+        <li><a class="tap" href="#members">Members</a></li>
+        <li><a class="tap" href="#files">Files</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div>
+    <section aria-labelledby="summary">
+      <h2 id="summary" style="margin-top:0">Summary</h2>
+      <div class="box prose">
+        <dl class="m0">
+          <dt>Agenda</dt>
+          <dd>
+            {% if m.agenda_url %}<a class="btn" href="{{ m.agenda_url }}" style="display:flex">Open agenda (PDF in Box)</a>
+            {% else %}{% include 'lab/front-door/_agenda_missing.html' %}{% endif %}
+          </dd>
+          <dt>Minutes</dt>
+          <dd>{% if m.minutes_url %}<a href="{{ m.minutes_url }}">Open minutes (PDF in Box)</a>{% else %}Minutes link not added yet ({{ m.days_since }} days since meeting){% endif %}</dd>
+          <dt>Quorum</dt>
+          <dd>{{ m.quorum }} needed (agenda lists {{ m.voting_listed }} voting members)
+            <span class="fd-sm fd-muted" style="display:block">Source: {{ m.agenda_src }}. The Union Constitution doesn't set quorum; each body's own rules do.</span></dd>
+          <dt>Seats</dt>
+          <dd>
+            {% if is_senate %}{{ senate_counts.total }} voting seats under the Constitution · {{ senate_counts.vacant }} vacant · {{ senate_counts.fall }} first-year seats to be elected this fall
+            {% else %}{{ m.seats_constitution }} voting seats under the Constitution · {{ eboard_counts.vacant }} vacant{% endif %}
+            {% include 'lab/front-door/_cite.html' with art=m.seats_cite %}
+          </dd>
+          <dt>Who chairs</dt>
+          <dd>
+            {% if is_senate %}The Grand Marshal chairs and votes only to break a tie.
+              {% include 'lab/front-door/_cite.html' with art="Art. IV §1" %}
+            {% else %}The President of the Union chairs and votes only to break a tie; the Director of the Union advises.
+              {% include 'lab/front-door/_cite.html' with art="Art. IV §2; Art. VII §2" %}{% endif %}
+          </dd>
+        </dl>
+        {% include 'lab/front-door/_source.html' with s=m.record_source %}
+        {% include 'lab/front-door/_file_source.html' with has_link=m.has_file_link missing=m.file_missing_source %}
+      </div>
+    </section>
+
+    <section aria-labelledby="speak">
+      <h2 id="speak">Want to speak?</h2>
+      {% if m.speak_phrase %}
+        <p class="prose">Anyone can speak during the Invitation to Speak {{ m.speak_phrase }} of the meeting. Just attend and wait to be recognised. {% include 'lab/front-door/_draft.html' with why=m.speak_draft %}</p>
+      {% else %}
+        <p class="prose">This agenda doesn't list an Invitation to Speak. {% include 'lab/front-door/_draft.html' with why=m.speak_draft %}</p>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="agenda">
+      <h2 id="agenda">Agenda</h2>
+      <p class="prose">This body writes its agendas in Word, so the agenda is shown as the document.</p>
+      {% if m.agenda_url %}
+        <p><a class="btn" href="{{ m.agenda_url }}">Open agenda (PDF)</a></p>
+        {% if m.agenda_embed_url %}<iframe title="Box preview: {{ m.document_name }}" src="{{ m.agenda_embed_url }}" class="hidden sm:block w-full h-[28rem] border"></iframe>{% endif %}
+      {% else %}
+        <div class="dashed">Box preview of {{ m.document_name }} goes here. The link hasn't been added to the meeting record yet.</div>
+      {% endif %}
+      {% include 'lab/front-door/_file_source.html' with has_link=m.agenda_url missing=m.file_missing_source %}
+
+      <details>
+        <summary>Prototype only: what this document says</summary>
+        <div class="prose">
+          <p class="fd-sm fd-muted">Typed from the PDF so testers can try tasks. The real site shows the Box preview instead and never retypes a Word document.</p>
+          <ol class="num">
+            {% for s in m.sections %}
+              <li>{{ s.title }}
+                {% if s.items %}
+                  <ul class="bul" style="margin-top:.5rem">
+                    {% for i in s.items %}<li>{{ i.title }}{% if i.type == "report" and i.who %}: {{ i.who }}{% endif %}</li>{% endfor %}
+                  </ul>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+          <p class="fd-sm fd-muted">Source: {{ m.agenda_src }}</p>
+        </div>
+      </details>
+
+      {% if m.is_senate %}
+        <h3 id="agenda-option">Option for the Senate: the agenda item by item</h3>
+        <p class="fd-sm fd-muted prose">Shown only if the Senate chooses to draft its agendas in Notion and export them to Word or PDF. The Senate hasn't chosen this; today its agendas are written in Word. {% include 'lab/front-door/_draft.html' with why="Site owner" %}</p>
+        <details>
+          <summary>Preview the item-by-item agenda</summary>
+          <ol class="num agenda">
+            {% for s in m.sections %}
+              <li>
+                <strong>{{ s.title }}</strong>
+                <span class="fd-muted" style="display:block">{{ s.plain }}{% if s.draft %} {% include 'lab/front-door/_draft.html' with why=s.draft %}{% endif %}</span>
+                {% if s.cite %}{% include 'lab/front-door/_cite.html' with art=s.cite %}{% endif %}
+                {% if s.items %}
+                  <ul class="bul" style="margin-top:.5rem">
+                    {% for i in s.items %}
+                      <li>{{ i.title }}{% if i.type == "proposal" %} <span class="chip">Proposal</span>{% endif %}{% if i.type == "report" %}: {% if i.who %}{{ i.who }}{% else %}<em>Vacant</em>{% endif %}{% endif %}{% if i.plain %}<br><span class="fd-muted fd-sm">{{ i.plain }}</span>{% endif %}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <span class="fd-sm fd-muted">Nothing listed</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+          <p class="fd-sm fd-muted">Source: {{ m.agenda_src }}</p>
+          {% include 'lab/front-door/_source.html' with s=sources.agenda_items_option %}
+        </details>
+      {% else %}
+        <p class="fd-sm fd-muted prose">Item-by-item agendas aren't shown for the Executive Board. It writes its agendas in Word, and this site never retypes them.</p>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="decisions">
+      <h2 id="decisions">Decisions at this meeting</h2>
+      {% if m.is_senate %}
+        {% if motions_here %}
+          <div class="tbl-wrap" role="region" aria-label="Decisions at this meeting" tabindex="0">
+            <table>
+              <caption>Motions at this meeting</caption>
+              <thead><tr><th scope="col">Motion</th><th scope="col">Status</th><th scope="col">Text</th></tr></thead>
+              <tbody>
+                {% for o in motions_here %}
+                  <tr>
+                    <th scope="row">{{ o.summary }}</th>
+                    <td>{{ o.status_label }}</td>
+                    <td>{% if o.motion_file %}<a href="{{ o.motion_file }}" rel="nofollow">Motion text (PDF in Box)</a>{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p>No motions recorded for this meeting in the Senate's Notion.</p>
+        {% endif %}
+        {% include 'lab/front-door/_source.html' with s=sources.motions %}
+      {% else %}
+        <p>The Executive Board records its decisions in its minutes. {% if m.minutes_url %}<a href="{{ m.minutes_url }}">Open minutes (PDF)</a>{% else %}Minutes link not added yet ({{ m.days_since }} days since meeting).{% endif %}</p>
+        {% include 'lab/front-door/_source.html' with s=sources.in_minutes %}
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="members">
+      <h2 id="members">{% if is_senate %}Who was on the Senate at this meeting{% else %}Who was on the Executive Board at this meeting{% endif %}</h2>
+      <details>
+        <summary>Show the membership snapshot</summary>
+        <div class="prose">
+          {% if is_senate %}
+            <p>{{ senate_counts.line }}.</p>
+            {% for p in presiding %}<p><strong>Presiding:</strong> {{ p.seat }}, {{ p.holder }} (votes only to break a tie).</p>{% endfor %}
+          {% else %}
+            <p class="fd-sm fd-muted">{{ eboard_roster_note }}</p>
+          {% endif %}
+          {% for group, seats in snapshot %}
+            <h3>{{ group }}</h3>
+            <ul class="bul">
+              {% for s in seats %}
+                <li>{{ s.seat }}: {% if s.holder %}{{ s.holder }}{% if s.also %} (also {{ s.also }}){% endif %}{% elif s.status == "elect_fall" %}To be elected this fall{% else %}<em>Vacant</em>{% endif %}{% if s.chosen_by %} <span class="fd-sm fd-muted">(chosen by {{ s.chosen_by }}; votes)</span>{% endif %}</li>
+              {% endfor %}
+            </ul>
+            {% if group == "Officers" %}<p class="fd-sm fd-muted">Titles come from E-Board bylaws; the agenda doesn't say which voting seat each holds. {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</p>{% endif %}
+            {% if group == "Fraternity and Sorority Life (FSL) Senators" %}
+              <div class="box">
+                <p class="m0">{{ reconciliation.text }}</p>
+                {% include 'lab/front-door/_cite.html' with art=reconciliation.cite %}
+              </div>
+            {% endif %}
+          {% endfor %}
+          {% if is_senate %}
+            <h3>Non-voting officers</h3>
+            <ul class="bul">{% for n in senate_nonvoting %}<li>{{ n.title }}: {{ n.holder }}</li>{% endfor %}</ul>
+            <p class="fd-sm fd-muted">{{ senate_nonvoting_note }} {% include 'lab/front-door/_draft.html' with why="Senate bylaws or rules" %}</p>
+            <p class="fd-sm fd-muted">The agenda header lists {{ m.voting_listed }} voting members. That doesn't match the seat count above, and we haven't reconciled the two.</p>
+          {% endif %}
+          {% include 'lab/front-door/_source.html' with s=sources.roster %}
+          <p class="fd-sm fd-muted">{{ seat_source_note }}</p>
+        </div>
+      </details>
+    </section>
+
+    <section aria-labelledby="files">
+      <h2 id="files">Files for this term</h2>
+      {% include 'lab/front-door/_box_folder.html' %}
+    </section>
+  </div>
+</div>
+{% endblock %}

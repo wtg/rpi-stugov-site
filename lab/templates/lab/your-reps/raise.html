@@ -1,0 +1,136 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}Raise an issue{% endblock %}
+{% block content %}
+<h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">Raise an issue</h1>
+<p class="mt-2 text-lg">Pick what it's about and we'll show you which seat handles it.</p>
+
+{% if errors %}
+<div id="error-summary" role="alert" tabindex="-1" class="mt-4 rounded-xl border-2 border-ink bg-white p-4">
+  <h2 class="text-lg font-bold">There {% if errors|length == 1 %}is 1 problem{% else %}are {{ errors|length }} problems{% endif %} with your form</h2>
+  <ul role="list" class="mt-2 list-disc pl-6">
+    {% for e in errors %}<li><a href="#{{ e.id }}">{{ e.label }}: {{ e.message }}</a></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<section aria-labelledby="step1-h" class="mt-6">
+  <h2 id="step1-h" class="text-2xl font-bold">Step 1: What's it about?</h2>
+  <form method="get" action="{% url 'lab:your_reps:raise' %}" class="mt-3">
+    {% if for_key %}<input type="hidden" name="for" value="{{ for_key }}">{% endif %}
+    <fieldset id="topic-step" tabindex="-1">
+      <legend class="sr-only">What's it about?</legend>
+      <ul role="list" class="grid gap-2 md:grid-cols-2">
+        {% for t in topics %}
+        <li class="card flex items-start gap-3 !p-3">
+          <input class="mt-1.5 h-5 w-5 shrink-0 accent-accent" type="radio" name="topic" id="topic-{{ t.slug }}" value="{{ t.slug }}"{% if topic and topic.slug == t.slug %} checked{% endif %}>
+          <label for="topic-{{ t.slug }}" class="grow cursor-pointer"><span class="font-semibold">{{ t.question }}</span></label>
+        </li>
+        {% endfor %}
+      </ul>
+    </fieldset>
+    <button class="btn-button mt-3" type="submit">Show where this goes</button>
+  </form>
+</section>
+
+{% if topic %}
+<section aria-labelledby="route-h" class="mt-8" id="routing">
+  <h2 id="route-h" class="text-2xl font-bold">Where this goes</h2>
+  <div class="card mt-3 space-y-3">
+    <p class="text-lg"><span class="font-bold">This goes to:</span> {{ topic.owner_label }}
+      {% if route.person %}(<a href="{% url 'lab:your_reps:person' route.person.slug %}">{{ topic.person_word }}: {{ route.person.name }} {{ route.person.class_label }}</a>){% elif route.text %}({{ route.text }}){% endif %}
+      {% if topic.owner_draft %}{% include "lab/your-reps/_draft.html" with why=topic.owner_draft %}{% endif %}</p>
+    {% if topic.owner_draft_note %}<p class="text-sm text-muted">{{ topic.owner_draft_note }}</p>{% endif %}
+    <p><span class="font-semibold">Tracked publicly?</span> {{ tracking }}</p>
+    {% if topic.body_fact %}
+    <p>{{ topic.body_fact }} {% include "lab/your-reps/_cite.html" with art=topic.body_cite %}</p>
+    {% elif topic.remit %}
+    <p>{{ topic.remit }} {% include "lab/your-reps/_draft.html" with why=topic.remit_draft %}</p>
+    {% endif %}
+    {% if topic.outside_sg %}<p><span class="font-semibold">Outside Student Government:</span> {{ topic.outside_sg }}</p>{% endif %}
+    {% if topic.no_form %}
+    <p><span class="font-semibold">How to file:</span> not published yet {% include "lab/your-reps/_draft.html" with why=topic.how_to_file_draft %}</p>
+    <p><a href="{% url 'lab:your_reps:how' %}#judicial-board">Read what the Constitution says about the Judicial Board →</a></p>
+    {% endif %}
+    {% if also_reps %}
+    <div>
+      <p class="font-semibold">Also your reps ({{ for_label }}):</p>
+      <ul role="list" class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        {% for p in also_reps %}<li><a href="{% url 'lab:your_reps:person' p.slug %}">{{ p.name }}</a></li>{% endfor %}
+      </ul>
+      <p class="mt-1 text-sm"><a href="{% url 'lab:your_reps:reps' for_key %}">See all of them →</a></p>
+    </div>
+    {% elif not for_key %}
+    <p class="text-sm text-muted">Want to see your own reps here? <a href="{% url 'lab:your_reps:home' %}#chooser">Choose your group first</a>.</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if confirmation %}
+<section aria-labelledby="done-h" class="mt-8" id="confirmation">
+  <h2 id="done-h" class="text-2xl font-bold">Step 2: What would happen next</h2>
+  <div class="card mt-3 space-y-3">
+    <p class="font-semibold">Mock for testing. Nothing you typed was saved or sent.</p>
+    <p>In the real site this would be emailed to: the role inbox for {{ dest_name }} (to be set up). {% if tracking_body == 'senate' or tracking_body == 'gc' %}The committee would log it as a private row in the Senate's Notion Issues database. If you said yes to publishing and the committee ticks Public, an anonymised summary would appear on You said, we did with status 'Heard'. Your own words are never published.{% else %}The {{ tracking_body_name }} doesn't publish an issue tracker, so nothing would appear on You said, we did. Its response would be in its minutes.{% endif %} {% include "lab/your-reps/_draft.html" with why="Site owner" %}</p>
+    <p class="text-sm text-muted">The issue board isn't agreed yet.</p>
+    <ul role="list" class="list-disc pl-6">
+      <li>Your description was {{ confirmation.length }} characters. We don't show it again.</li>
+      <li>{% if confirmation.publish %}You said yes to publishing an anonymised summary.{% else %}You said no to publishing, so nothing would appear on You said, we did.{% endif %}</li>
+      {% if confirmation.group %}<li>Group: {{ confirmation.group }}.</li>{% endif %}
+    </ul>
+    <p><a href="{% url 'lab:your_reps:raise' %}">Raise another →</a></p>
+  </div>
+</section>
+{% elif show_form %}
+<section aria-labelledby="step2-h" class="mt-8" id="step2">
+  <h2 id="step2-h" class="text-2xl font-bold">Step 2: Tell us what's wrong</h2>
+  <p class="mt-2 rounded-xl border-2 border-dashed border-ink bg-yellow-50 p-3 font-semibold">Mock for testing. Nothing you type is saved or sent.</p>
+  <form method="post" action="" class="mt-4 space-y-5" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="topic" value="{{ topic.slug }}">
+
+    <div>
+      <label for="id_description" class="block text-lg font-semibold">Describe the problem</label>
+      <p id="desc-hint" class="text-sm text-muted">20 to 1000 characters. Please leave out names and personal details.</p>
+      {% for e in errors %}{% if e.field == "description" %}<p id="desc-error" class="error-text">{{ e.message }}</p>{% endif %}{% endfor %}
+      <textarea class="field{% for e in errors %}{% if e.field == 'description' %} field-error{% endif %}{% endfor %}" id="id_description" name="description" rows="6" maxlength="1000" required aria-describedby="desc-hint{% for e in errors %}{% if e.field == 'description' %} desc-error{% endif %}{% endfor %}"{% for e in errors %}{% if e.field == 'description' %} aria-invalid="true"{% endif %}{% endfor %}>{{ desc_value }}</textarea>
+    </div>
+
+    <div>
+      <label for="id_group" class="block text-lg font-semibold">Which group are you in? <span class="font-normal text-muted">(optional)</span></label>
+      <select class="field mt-1 sm:w-auto" id="id_group" name="group">
+        <option value=""{% if not group_value %} selected{% endif %}>Prefer not to say</option>
+        {% for k, c in constituencies.items %}<option value="{{ k }}"{% if group_value == k or not group_value and for_key == k %} selected{% endif %}>{{ c.label }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <fieldset>
+      <legend class="text-lg font-semibold">May we publish an anonymised summary on You said, we did?</legend>
+      {% for e in errors %}{% if e.field == "publish" %}<p class="error-text">{{ e.message }}</p>{% endif %}{% endfor %}
+      <div class="mt-1 flex flex-wrap gap-x-6 gap-y-1">
+        <label class="inline-flex min-h-[44px] items-center gap-2"><input class="h-5 w-5 accent-accent" type="radio" name="publish" id="id_publish_yes" value="yes"{% if publish_value == "yes" %} checked{% endif %}> Yes</label>
+        <label class="inline-flex min-h-[44px] items-center gap-2"><input class="h-5 w-5 accent-accent" type="radio" name="publish" id="id_publish_no" value="no"{% if publish_value != "yes" %} checked{% endif %}> No</label>
+      </div>
+      <p class="text-sm text-muted">Only a short summary would ever be shown, and only if the committee ticks Public. Your own words are never published.</p>
+    </fieldset>
+
+    <button class="btn-button" type="submit">Preview what would happen</button>
+  </form>
+</section>
+{% elif topic %}
+{% else %}
+<p class="mt-6 text-muted">Step 2 appears after you choose a topic.</p>
+{% endif %}
+
+<p class="mt-8 rounded-xl border border-line bg-white p-3 font-semibold">{{ safety_line }} {% include "lab/your-reps/_draft.html" with why="Site owner" %}</p>
+
+<div class="mt-6">{% include "lab/your-reps/_source.html" with s=sources.wagtail %}</div>
+{% endblock %}
+
+{% block scripts %}
+{% if errors %}
+<script>
+  (function () { var el = document.getElementById('error-summary'); if (el) { el.focus(); } })();
+</script>
+{% endif %}
+{% endblock %}

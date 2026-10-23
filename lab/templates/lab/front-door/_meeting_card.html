@@ -1,0 +1,10 @@
+<li class="card">
+  <h3 class="m0">{{ m.body_name }}</h3>
+  <p class="m0"><time datetime="{{ m.date|date:'Y-m-d' }}">{{ m.date_short }}</time> · {{ m.time }} · {{ m.location }}</p>
+  <p class="m0">
+    {% if m.agenda_url %}<a href="{{ m.agenda_url }}">Agenda posted</a>{% else %}{% include 'lab/front-door/_agenda_missing.html' %}{% endif %}
+    · <a href="{{ m.url }}">Meeting details</a>
+  </p>
+  {% if m.speak_phrase %}<p class="m0">Anyone can speak {{ m.speak_phrase }}.</p>{% endif %}
+  {% include 'lab/front-door/_source.html' with s=m.record_source %}
+</li>

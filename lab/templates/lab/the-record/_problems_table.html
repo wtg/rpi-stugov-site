@@ -1,0 +1,27 @@
+{# rows (health checks), caption, full (bool: show Area and Item as separate columns) #}
+<table class="data-table">
+  <caption>{{ caption }}</caption>
+  <thead><tr>
+    <th scope="col">Status</th>{% if full %}<th scope="col">Area</th>{% endif %}<th scope="col">Check</th>{% if full %}<th scope="col">Item</th>{% endif %}<th scope="col">Age</th><th scope="col">Owner</th><th scope="col">Fix</th>
+  </tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td data-label="Status">{% include 'lab/the-record/_sev.html' with sev=r.severity label=r.severity_label %}{% if r.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</td>
+      {% if full %}<td data-label="Area">{{ r.area }}</td>{% endif %}
+      <th scope="row" data-label="Check" class="font-normal">{{ r.check }}
+        {% if not full %}<span class="block text-sm text-muted">{{ r.item }}</span>{% endif %}
+        {% if r.since_note %}<span class="block text-sm text-muted">{{ r.since_note }}</span>{% endif %}
+        {% if r.cite %}<span class="block">{% include 'lab/the-record/_cite.html' with art=r.cite %}</span>{% endif %}
+        {% if r.draft %}<span class="block">{% include 'lab/the-record/_draft.html' with why=r.draft %}</span>{% endif %}
+      </th>
+      {% if full %}<td data-label="Item">{{ r.item }}</td>{% endif %}
+      <td data-label="Age">{{ r.age }}</td>
+      <td data-label="Owner">{{ r.owner_role }}</td>
+      <td data-label="Fix"><a href="{{ r.fix_url }}" rel="nofollow">{{ r.fix_label }}</a> <span class="text-xs">(mock link)</span></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" data-label="Result">Nothing to fix.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

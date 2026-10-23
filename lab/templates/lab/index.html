@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layout lab · Rensselaer Union</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 48rem; margin: 0 auto; padding: 2rem 1rem; color: #1a1a1a; background: #fff; }
+    h1 { font-size: 1.75rem; margin-bottom: .25rem; }
+    ul { list-style: none; padding: 0; }
+    li { border: 1px solid #d0d0d0; border-radius: .5rem; padding: 1rem 1.25rem; margin: 1rem 0; }
+    a { color: #b00000; font-weight: 600; font-size: 1.15rem; }
+    .tag { font-size: .75rem; background: #1a1a1a; color: #fff; padding: .1rem .5rem; border-radius: 1rem; margin-left: .5rem; vertical-align: middle; }
+    p { margin: .25rem 0 0; }
+  </style>
+</head>
+<body>
+  <h1>Layout lab</h1>
+  <p>Alternate structures for the Rensselaer Union site, built to compare before committing. Nothing here touches the live page tree.</p>
+  <ul>
+    {% for p in prototypes %}
+      <li>
+        <a href="{{ p.slug }}/">{{ p.name|default:p.slug }}</a>{% if p.recommended %}<span class="tag">Recommended</span>{% endif %}
+        {% if p.thesis %}<p>{{ p.thesis }}</p>{% endif %}
+      </li>
+    {% empty %}
+      <li>No prototypes yet.</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

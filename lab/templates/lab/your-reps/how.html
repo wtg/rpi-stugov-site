@@ -1,0 +1,235 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}How it works{% endblock %}
+{% block content %}
+<h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">How it works</h1>
+<p class="mt-2 text-lg">Rules on this page come from the Rensselaer Union Constitution, last amended 6 Feb 2026, unless marked Draft.</p>
+
+<nav aria-label="On this page" class="mt-4">
+  <ul role="list" class="flex flex-wrap gap-2">
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#bodies">Bodies</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#meetings">Meetings</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#speak">Speak</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#elections">Elections</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#powers">Your powers</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#glossary">Glossary</a></li>
+    <li><a class="inline-flex min-h-[44px] items-center rounded-lg border border-ink bg-white px-3 font-semibold" style="text-decoration:none" href="#site">This site</a></li>
+  </ul>
+</nav>
+
+<!-- ============ BODIES ============ -->
+<section id="bodies" aria-labelledby="bodies-h" class="mt-10">
+  <h2 id="bodies-h" class="text-2xl font-bold">Bodies</h2>
+  <p class="mt-1">Five bodies govern the Union, and each class has its own council.</p>
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2">
+    {% for b in bodies %}
+    <li class="card" id="body-{{ b.id }}">
+      <h3 class="text-lg font-bold">{{ b.name }}</h3>
+      <p class="mt-1">{{ b.glossary_entry.text }}</p>
+      <p class="mt-2"><span class="font-semibold">Who sits on it:</span> {{ b.who }}{% if b.who_derived %} {% include "lab/your-reps/_derived.html" %}{% endif %}.</p>
+      <p><span class="font-semibold">Who chairs:</span> {{ b.chair }}</p>
+      {% include "lab/your-reps/_cite.html" with art=b.cite %}
+      <p class="mt-2">
+        {% if b.roster == "senate" %}<span class="font-semibold">Roster:</span> choose your group on the <a href="{% url 'lab:your_reps:home' %}#chooser">home page</a>, or see <a href="{% url 'lab:your_reps:people' %}">Everyone A–Z</a>.
+        {% elif b.roster == "eb" %}<span class="font-semibold">Roster:</span> <a href="{% url 'lab:your_reps:reps' 'clubs' %}">club and organisation reps</a>, your class's rep on your group's page, and <a href="{% url 'lab:your_reps:people' %}">Everyone A–Z</a>.
+        {% else %}<span class="font-semibold">Roster:</span> Roster not listed yet.{% endif %}
+      </p>
+      {% if b.roster == "senate" %}
+      <div class="mt-2 text-sm"><span class="font-semibold">Note on the agenda:</span> {{ reconciliation_note }} {% include "lab/your-reps/_cite.html" with art=reconciliation_cite %}</div>
+      {% elif b.roster == "eb" %}
+      <p class="mt-2 text-sm text-muted">{{ eb_warning }}</p>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h3 class="mt-6 text-xl font-bold">The five Union officers</h3>
+  <ul role="list" class="mt-2 list-disc pl-6">
+    {% for o in five_officers %}<li>{{ o }}</li>{% endfor %}
+  </ul>
+  <p class="mt-1">They must meet regularly to coordinate. {% include "lab/your-reps/_cite.html" with art="Art. IV" %}</p>
+</section>
+
+<!-- ============ MEETINGS ============ -->
+<section id="meetings" aria-labelledby="meetings-h" class="mt-10">
+  <h2 id="meetings-h" class="text-2xl font-bold">Meetings</h2>
+  <ul role="list" class="mt-3 space-y-3">
+    {% for m in meetings %}
+    <li class="card">
+      <h3 class="font-bold">{{ m.name }}</h3>
+      <p><time datetime="{{ m.date|date:'Y-m-d' }}">{{ m.date|date:"l j M Y" }}</time>, {{ m.time }}, {{ m.place }}</p>
+      {% include "lab/your-reps/_source.html" with s=m.source %}
+      <p class="text-sm text-muted">{{ m.minutes }}. Agenda: {{ m.agenda }}.</p>
+      <p><a href="{{ m.agenda_url }}" rel="nofollow">Open agenda (PDF in Box)</a> <span class="text-xs">(mock link)</span></p>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="mt-3">The live site says the Senate meets Mondays at 7 PM. The schedule is to be confirmed.</p>
+  {% include "lab/your-reps/_source.html" with s=sources.document %}
+
+  <h3 class="mt-6 text-xl font-bold">Bodies that publish records as files</h3>
+  <ul role="list" class="mt-3 space-y-3">
+    {% for b in folder_bodies %}
+    <li class="card">
+      <h4 class="font-bold">{{ b.name }}</h4>
+      <p>Publishes its records as files. It doesn't list meetings on this site.</p>
+      {% if b.note %}<p class="text-sm text-muted">{{ b.note }}{% if b.key == "jboard" %} {% include "lab/your-reps/_draft.html" with why="Judicial Board bylaws" %}{% endif %}</p>{% endif %}
+      <div class="mt-2 rounded-lg border-2 border-dashed border-line p-3 text-sm">Box folder embed goes here: {{ b.path }}</div>
+      {% include "lab/your-reps/_source.html" with s=sources.folder_only %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<!-- ============ SPEAK ============ -->
+<section id="speak" aria-labelledby="speak-h" class="mt-10">
+  <h2 id="speak-h" class="text-2xl font-bold">Speak at a meeting</h2>
+  <p class="mt-2">You don't have to be on the Senate or the Executive Board to be heard. Agendas include an Invitation to Speak at the start and end of the meeting, and a Press &amp; Visitor Q/A. Come to a meeting and use them. Check the meeting list above for the time and place. {% include "lab/your-reps/_draft.html" with why="Senate bylaws or rules" %}</p>
+</section>
+
+<!-- ============ ELECTIONS ============ -->
+<section id="elections" aria-labelledby="elections-h" class="mt-10">
+  <h2 id="elections-h" class="text-2xl font-bold">Elections</h2>
+
+  <h3 class="mt-4 text-xl font-bold">When</h3>
+  <p>General elections are in the spring. First-year Senators and the first-year Class Council are elected in the fall. Results come out by the end of the semester and winners take office within a week. {% include "lab/your-reps/_cite.html" with art="Art. VIII §1–§3, §12" %}</p>
+
+  <h3 class="mt-4 text-xl font-bold">Who can vote and run</h3>
+  <p>Any Union member at the time of the election; voting is by secret ballot. Candidates must meet RPI's eligibility rules and any Senate rules. Grand Marshal, President of the Union and Judicial Board Chairperson need one full semester at RPI. {% include "lab/your-reps/_cite.html" with art="Art. IV §6; Art. VIII §4, §13" %}</p>
+
+  <h3 class="mt-4 text-xl font-bold">How winners are chosen</h3>
+  <p>Grand Marshal and President of the Union need at least 40% of the vote. Most other seats go to whoever gets the most votes. The three FSL seats are spread across chapter groupings: the top vote-getter wins, and the next two seats go to the top candidates from different groupings (or write-ins). Ties mean a new election between the tied candidates. {% include "lab/your-reps/_cite.html" with art="Art. VIII §5, §8, §10, §11" %}</p>
+
+  <h3 id="fill-rules" class="mt-4 text-xl font-bold">How seats get filled</h3>
+  <div class="mt-2 overflow-x-auto" tabindex="0" role="region" aria-labelledby="fill-rules-cap">
+    <table class="data-table">
+      <caption id="fill-rules-cap">Who fills each kind of seat</caption>
+      <thead><tr><th scope="col">Seat</th><th scope="col">Filled by</th><th scope="col">Answers to</th><th scope="col">Source</th></tr></thead>
+      <tbody>
+        {% for r in fill_rules %}
+        <tr>
+          <th scope="row">{{ r.label }}</th>
+          <td>{{ r.filled_by }}</td>
+          <td>{{ r.answers_to }}</td>
+          <td>
+            {% if r.cite %}{% include "lab/your-reps/_cite.html" with art=r.cite %}{% endif %}
+            {% if r.draft %}<span class="mt-1 block">{% include "lab/your-reps/_draft.html" with why=r.draft %}{% if r.key == "officer_title" %} {% include "lab/your-reps/_draft.html" with why="E-Board bylaws" %}{% endif %}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="mt-6 text-xl font-bold">Open seats right now</h3>
+  <p class="text-muted">Counted from the latest rosters. Each Senate and Executive Board seat is listed once.</p>
+  <div class="mt-2 grid gap-4 md:grid-cols-2">
+    {% for g in open_seats %}
+    <div class="card">
+      <h4 class="font-bold">{{ g.body }}: {{ g.total }} open</h4>
+      <ul role="list" class="mt-1 list-disc pl-6 text-sm">
+        {% for it in g.items %}<li>{{ it.seat }}{% if it.count > 1 %} × {{ it.count }}{% endif %}: {{ it.text }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+
+  <p class="mt-4"><span class="font-semibold">Contact the Elections Commission</span> ({% if elections_commissioner %}<a href="{% url 'lab:your_reps:person' elections_commissioner.slug %}">{{ elections_commissioner.name }}</a>, acting{% else %}acting commissioner{% endif %}).
+    {% include "lab/your-reps/_draft.html" with why="Senate election rules" %}
+    <span class="block text-sm text-muted">Ballot access is set by the Senate, not the Constitution (Art. VIII §6). {{ agenda.senate }}</span></p>
+</section>
+
+<!-- ============ POWERS ============ -->
+<section id="powers" aria-labelledby="powers-h" class="mt-10">
+  <h2 id="powers-h" class="text-2xl font-bold">If your reps don't act</h2>
+  <p class="mt-1">The Constitution gives every Union member these tools.</p>
+  <div class="mt-3 space-y-4">
+    {% for p in powers %}
+    <div class="card">
+      <h3 id="{{ p.id }}" class="text-xl font-bold">{{ p.title }}</h3>
+      <p class="mt-1">{{ p.text }}</p>
+      {% if p.not_set %}<p class="mt-2 text-sm"><span class="font-semibold">Not set by the Constitution:</span> {{ p.not_set }} {% include "lab/your-reps/_draft.html" with why=p.not_set_why %}</p>{% endif %}
+      {% include "lab/your-reps/_cite.html" with art=p.cite %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="mt-3 text-sm text-muted">None of these has a published way to submit yet, so there are no buttons here.</p>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary" aria-labelledby="glossary-h" class="mt-10">
+  <h2 id="glossary-h" class="text-2xl font-bold">Glossary</h2>
+  <dl class="mt-3 space-y-4">
+    {% for g in glossary %}
+    <div class="card">
+      <dt class="font-bold">{{ g.term }}</dt>
+      <dd class="mt-1">{{ g.text }}
+        {% if g.cite %}{% include "lab/your-reps/_cite.html" with art=g.cite %}{% endif %}
+        {% if g.agenda %}<span class="block text-sm text-muted">{{ g.agenda }}</span>{% endif %}
+        {% if g.draft %}<span class="block">{% include "lab/your-reps/_draft.html" with why=g.draft %}</span>{% endif %}
+      </dd>
+    </div>
+    {% endfor %}
+  </dl>
+</section>
+
+<!-- ============ THIS SITE ============ -->
+<section id="site" aria-labelledby="site-h" class="mt-10">
+  <h2 id="site-h" class="text-2xl font-bold">How this site works</h2>
+  <p class="mt-2 text-lg">This site keeps one copy of each fact. It keeps the roster for every body and its own explanations. Files live in Box. Each body keeps its meeting records its own way: the Senate in its Notion, the Executive Board on this site, and the other bodies as files in Box.</p>
+
+  <h3 class="mt-4 text-xl font-bold">Each body's records</h3>
+  <div class="mt-2 overflow-x-auto" tabindex="0" role="region" aria-labelledby="bybody-cap">
+    <table class="data-table">
+      <caption id="bybody-cap">Each body's records {% include "lab/your-reps/_draft.html" with why="Site owner" %}</caption>
+      <thead><tr><th scope="col">Body</th><th scope="col">Meeting records</th><th scope="col">Roster</th><th scope="col">Issues</th></tr></thead>
+      <tbody>
+        {% for row in ownership_by_body %}
+        <tr>
+          <th scope="row">{{ row.body }}{% if row.example %} <span class="text-muted font-normal">(example)</span>{% endif %}</th>
+          <td>{{ row.meetings }}</td>
+          <td>{{ row.roster }}</td>
+          <td>{{ row.issues }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="mt-6 text-xl font-bold">What lives where</h3>
+  <div class="mt-2 overflow-x-auto" tabindex="0" role="region" aria-labelledby="ownership-cap">
+    <table class="data-table">
+      <caption id="ownership-cap">What lives where, and who edits it {% include "lab/your-reps/_draft.html" with why="Site owner" %}</caption>
+      <thead><tr><th scope="col">What</th><th scope="col">Lives in</th><th scope="col">Who edits</th><th scope="col">How this site gets it</th></tr></thead>
+      <tbody>
+        {% for row in ownership_shared %}
+        <tr>
+          <th scope="row">{{ row.what }}{% if row.native %} <span class="ml-1 inline-block rounded border border-ink px-1.5 py-0.5 text-xs font-bold">Written on this site</span>{% endif %}</th>
+          <td>{{ row.lives_in }}</td>
+          <td>{{ row.who_edits }}</td>
+          <td>{{ row.how_site_gets_it }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-3">Each body chooses how it keeps its own records; the choices marked as examples are placeholders. Whatever it chooses, every body publishes agendas and minutes in its public Box folder under the Public Records Standard.</p>
+  <p class="mt-2 text-sm text-muted">Files such as agendas stay in Box and are linked, not copied. There is no Box API connection: someone pastes the shared link into the record.</p>
+
+  <h3 class="mt-6 text-xl font-bold">Written on this site</h3>
+  <ul role="list" class="mt-2 list-disc pl-6">
+    <li><a href="{% url 'lab:your_reps:home' %}#chooser">The "I'm a…" chooser</a> and <a href="{% url 'lab:your_reps:reps' '2028' %}">the group descriptions</a></li>
+    <li><a href="{% url 'lab:your_reps:raise' %}">Raise an issue</a> (the topic router)</li>
+    <li>This How it works page: <a href="#bodies">bodies</a>, <a href="#elections">elections and fill rules</a>, <a href="#powers">powers</a>, <a href="#glossary">glossary</a></li>
+  </ul>
+
+  <h3 class="mt-6 text-xl font-bold">What members control</h3>
+  <p>Name, seat and term are always public, because they're on public agendas. Each member decides on this site whether to publish a photo, bio, pronouns, major and office hours. Unticking 'Public profile' removes them from this site at once. Contact always goes to the seat's role inbox.</p>
+
+  <h3 class="mt-6 text-xl font-bold">At the start of a new term</h3>
+  <p>Set the new term as current on this site. Every seat on this site then shows open until new assignments are entered. Nobody clears last year's names by hand. The Senate's Notion copy updates itself.</p>
+  <p class="mt-1"><a href="{{ rollover_url }}">See what that looks like</a></p>
+</section>
+
+<div class="mt-8">{% include "lab/your-reps/_source.html" with s=sources.wagtail %}</div>
+{% endblock %}

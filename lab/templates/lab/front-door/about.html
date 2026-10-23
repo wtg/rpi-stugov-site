@@ -1,0 +1,212 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>How the Union works</h1>
+<p class="prose">Everything on this page about who sits where and who decides what comes from the Rensselaer Union Constitution, last amended 6 Feb 2026, unless marked otherwise.</p>
+
+<nav aria-label="On this page">
+  <ul class="plain jump">
+    <li><a class="tap" href="#bodies">Bodies</a></li>
+    <li><a class="tap" href="#officers">Officers</a></li>
+    <li><a class="tap" href="#committees">Committees</a></li>
+    <li><a class="tap" href="#glossary">Glossary</a></li>
+    <li><a class="tap" href="#get-involved">Get involved</a></li>
+    <li><a class="tap" href="#how-this-site-works">How this site works</a></li>
+  </ul>
+</nav>
+
+<p id="bodies" class="prose">Five bodies govern the Union. Class Councils sit under the Undergraduate Council.</p>
+{% include 'lab/front-door/_cite.html' with art="Art. VII" %}
+
+{% for b in bodies %}
+  <section aria-labelledby="{{ b.id }}">
+    <h2 id="{{ b.id }}">{{ b.term }}</h2>
+    <p class="prose">{% if b.text %}{{ b.text }}{% else %}{% for g in glossary %}{% if g.body_id == b.id %}{{ g.text }}{% endif %}{% endfor %}{% endif %}</p>
+    <dl class="prose">
+      <dt>Who sits on it</dt><dd>{{ b.sits }}</dd>
+      <dt>Chaired by</dt><dd>{{ b.chair }} ({{ b.chair_note }})</dd>
+      {% if b.leader %}<dt>Right now</dt><dd>{{ b.leader }} {% include 'lab/front-door/_source.html' with s=sources.roster %}</dd>{% endif %}
+      {% if b.roster_unlisted %}<dt>Roster</dt><dd>Roster not listed yet.</dd>{% endif %}
+      {% if b.records_files %}<dt>Records</dt><dd><a href="{% url 'lab:front_door:meetings' %}#files-only">Published as files in its Box folder</a></dd>{% endif %}
+    </dl>
+    {% if b.id == "senate" %}<p class="fd-sm prose">{{ senate_counts.line }}.</p>{% endif %}
+    {% include 'lab/front-door/_cite.html' with art=b.cite %}
+    <p class="m0"><strong>What you can do here</strong></p>
+    <ul class="plain jump">
+      {% for l in b.links %}<li><a class="tap" href="{{ l.url }}">{{ l.label }}</a></li>{% endfor %}
+    </ul>
+  </section>
+{% endfor %}
+
+<section aria-labelledby="officers">
+  <h2 id="officers">Officers</h2>
+  <p class="prose">{{ officers_text }}</p>
+  {% include 'lab/front-door/_cite.html' with art="Art. IV" %}
+  <dl class="prose">
+    {% for g in officer_terms %}
+      <dt>{{ g.term }}</dt>
+      <dd>{{ g.text }}{% if g.draft %} {% include 'lab/front-door/_draft.html' with why=g.draft %}{% endif %}
+        {% if g.cite %}{% include 'lab/front-door/_cite.html' with art=g.cite %}{% endif %}</dd>
+    {% endfor %}
+  </dl>
+</section>
+
+<section aria-labelledby="committees">
+  <h2 id="committees">Committees</h2>
+  <p class="prose">The Constitution does not list any committees. These come from the agendas and are set by each body's own bylaws.</p>
+  <div class="tbl-wrap" role="region" aria-label="Senate committees table" tabindex="0">
+    <table>
+      <caption>Senate committees</caption>
+      <thead><tr><th scope="col">Committee</th><th scope="col">What it handles</th><th scope="col">Chair</th></tr></thead>
+      <tbody>
+        {% for c in committees %}
+          <tr>
+            <th scope="row">{{ c.label }}</th>
+            <td>{{ c.handles }} {% include 'lab/front-door/_draft.html' with why="Senate bylaws or rules" %}</td>
+            <td>{% if c.chair %}{{ c.chair }}{% else %}Vacant{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  <p class="prose m0">{{ gm_ex_officio.text }}</p>
+  {% include 'lab/front-door/_cite.html' with art=gm_ex_officio.cite %}
+  <p class="fd-sm fd-muted">Source: {{ agenda_src.senate }}</p>
+
+  <div class="tbl-wrap" role="region" aria-label="Executive Board committees table" tabindex="0">
+    <table>
+      <caption>Executive Board committees</caption>
+      <thead><tr><th scope="col">Committee</th><th scope="col">What it handles</th><th scope="col">Chair</th></tr></thead>
+      <tbody>
+        {% for c in eb_committees %}
+          <tr>
+            <th scope="row">{{ c.name }}</th>
+            <td>{{ c.handles }} {% include 'lab/front-door/_draft.html' with why="E-Board bylaws" %}</td>
+            <td>{% if c.chair %}{{ c.chair }}{% else %}Vacant{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  <p class="fd-sm fd-muted">Source: {{ agenda_src.eboard }}</p>
+</section>
+
+<section aria-labelledby="glossary">
+  <h2 id="glossary">Glossary</h2>
+  <dl class="prose">
+    {% for g in glossary %}
+      <dt id="term-{{ g.slug }}">{{ g.term }}</dt>
+      <dd>{{ g.text }}{% if g.draft %} {% include 'lab/front-door/_draft.html' with why=g.draft %}{% endif %}
+        {% if g.cite %}{% include 'lab/front-door/_cite.html' with art=g.cite %}{% endif %}
+        {% if g.source %}<p class="fd-sm fd-muted">Source: {{ g.source }}</p>{% endif %}</dd>
+    {% endfor %}
+  </dl>
+  {% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+</section>
+
+<section aria-labelledby="get-involved">
+  <h2 id="get-involved">Get involved</h2>
+  <p class="prose">These seats are open right now.</p>
+  {% for g in open_groups %}
+    <h3>{{ g.group }} <span class="fd-sm fd-muted">({{ g.body }})</span></h3>
+    <p class="prose m0">
+      {% if g.vacant %}{{ g.vacant }} vacant{% endif %}{% if g.vacant and g.fall %}; {% endif %}{% if g.fall %}{{ g.fall }} To be elected this fall{% endif %}.
+    </p>
+    {% if g.fill %}
+      <p class="prose fd-sm m0">How {% if g.fall and not g.vacant %}these seats get{% else %}a vacant seat gets{% endif %} filled: {{ g.fill.text }}
+        {% if g.fill.draft %}{% include 'lab/front-door/_draft.html' with why=g.fill.draft %}{% endif %}</p>
+      {% include 'lab/front-door/_cite.html' with art=g.fill.cite %}
+    {% endif %}
+  {% endfor %}
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  <p class="fd-sm fd-muted">{{ senate_counts.line }}.</p>
+  <p class="prose"><strong>How to run:</strong> contact the Elections Commission{% if elections_chair %} ({{ elections_chair }}){% endif %}. {% include 'lab/front-door/_draft.html' with why="Senate election rules" %}</p>
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  <p><a class="tap" href="{{ take_part_url }}">Every way to take part</a></p>
+</section>
+
+<section aria-labelledby="funding-owner">
+  <h2 id="funding-owner">Who runs club funding</h2>
+  <p class="prose">The Union Constitution gives the Executive Board the power to hand out Union money (Art. VII §2), but not the application steps. We are confirming whether requests go through the Club Financial Advisors, Union staff, or another system. {% include 'lab/front-door/_draft.html' with why="Union staff process" %}</p>
+</section>
+
+<section aria-labelledby="how-this-site-works">
+  <h2 id="how-this-site-works">How this site works</h2>
+  <p class="prose">This site keeps one copy of each fact. Files live in Box. Each body keeps its meeting records its own way: the Senate in its Notion, the Executive Board on this site, and the other bodies in their Box folders. This site keeps the roster for every body and its own explanations.</p>
+
+  <h3>Each body's records</h3>
+  <div class="tbl-wrap" role="region" aria-label="Each body's records table" tabindex="0">
+    <table>
+      <caption>Each body's records, and where they live {% include 'lab/front-door/_draft.html' with why="Site owner" %}</caption>
+      <thead><tr><th scope="col">Body</th><th scope="col">Meeting records</th><th scope="col">Agendas and minutes</th><th scope="col">Decisions</th><th scope="col">Roster</th><th scope="col">Issues</th></tr></thead>
+      <tbody>
+        {% for r in ownership_by_body %}
+          <tr>
+            <th scope="row">{{ r.body }}{% if r.example %} <span class="fd-muted fd-sm" style="font-weight:400">(example)</span>{% endif %}</th>
+            <td>{{ r.meetings }}</td>
+            <td>{{ r.files }}</td>
+            <td>{{ r.decisions }}</td>
+            <td>{{ r.roster }}</td>
+            <td>{{ r.issues }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">Each body chooses how it keeps its own records. The choices marked as examples are placeholders until each body decides. Whatever it chooses, a body's meetings live in one place, never two, and every body meets the Public Records Standard below.</p>
+
+  <h3>What lives where</h3>
+  <div class="tbl-wrap" role="region" aria-label="What lives where table" tabindex="0">
+    <table>
+      <caption>What lives where, and who edits it {% include 'lab/front-door/_draft.html' with why="Site owner" %}</caption>
+      <thead><tr><th scope="col">What</th><th scope="col">Lives in</th><th scope="col">Who edits</th><th scope="col">How this site gets it</th></tr></thead>
+      <tbody>
+        {% for r in ownership_shared %}
+          <tr>
+            <th scope="row">{{ r.what }}{% if r.native %}<br><span class="chip" style="font-size:.75rem">Written on this site</span>{% endif %}</th>
+            <td>{{ r.lives_in }}</td>
+            <td>{{ r.who_edits }}</td>
+            <td>{{ r.how_site_gets_it }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The Public Records Standard {% include 'lab/front-door/_draft.html' with why="Site owner" %}</h3>
+  <ul class="bul prose">
+    {% for r in records_standard %}
+      <li>{{ r.text }}{% if r.draft %} {% include 'lab/front-door/_draft.html' with why=r.draft %}{% endif %}
+        {% if r.cite %}{% include 'lab/front-door/_cite.html' with art=r.cite %}{% endif %}</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Written on this site</h3>
+  <ul class="bul prose">
+    {% for l in native_pages %}<li><a href="{{ l.url }}">{{ l.label }}</a></li>{% endfor %}
+    <li>Site notices (each one needs an expiry date)</li>
+  </ul>
+
+  <h3>To publish a meeting</h3>
+  {% for g in publish_steps_by_adapter %}
+    <h4>{{ g.label }}</h4>
+    <ol class="num prose">
+      {% for step in g.steps %}<li>{{ step }}</li>{% endfor %}
+    </ol>
+  {% endfor %}
+  <p class="prose"><strong>A meeting record with a Box agenda link, or a correctly named PDF in the folder, is a complete publish.</strong></p>
+
+  <h3>Rules for officers</h3>
+  <ul class="bul prose">
+    {% for r in officer_rules %}<li>{{ r }}</li>{% endfor %}
+  </ul>
+
+  <h3>Term rollover checklist</h3>
+  <p class="prose">Done on this site, by each body on its own schedule.</p>
+  <ol class="num prose">
+    {% for r in rollover %}<li>{{ r }}</li>{% endfor %}
+  </ol>
+  {% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+</section>
+{% endblock %}

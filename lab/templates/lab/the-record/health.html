@@ -1,0 +1,110 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Site health{% endblock %}
+{% block content %}
+<div role="note" class="border-2 border-dashed border-muted bg-rowalt p-3 mb-4 text-sm">Mock health page. Every value is seed data.</div>
+
+<h1>Site health {% include 'lab/the-record/_sample.html' %}</h1>
+<p class="mt-2 max-w-3xl">Every body checked against the Public Records Standard, plus what this site shows from the Senate's Notion, the E-Board's entries and each Box folder. Each problem links to where it's fixed. The site never fixes another body's records.</p>
+<p class="mt-1"><a href="{% url 'lab:the_record:desk' %}">&larr; Back to the officer desk</a></p>
+
+<section aria-labelledby="sync-h">
+  <h2 id="sync-h">1. Sync status</h2>
+  <dl class="border-y border-line divide-y divide-line">
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Senate's Notion</dt>
+      <dd>Last successful sync {{ last_success_ago }} ({{ last_success_label }}) · next run in {{ sync.notion_next_run_minutes }} min · last error: {% if sync.notion_last_error %}{{ sync.notion_last_error }}{% else %}none{% endif %}</dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Databases synced</dt>
+      <dd>Meetings ({{ counts.meetings }} rows), Motions ({{ counts.motions }} rows), Issues (synced in)</dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Roster copy</dt>
+      <dd>Pushed to the Senate's Notion (Senators, from website) {{ last_success_ago }}</dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Webhook</dt>
+      <dd>Last early-sync trigger {{ sync.webhook_last }}. Webhooks only speed things up; the 15-minute schedule is the guarantee.</dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Box</dt>
+      <dd>No Box connection (the Union has no Box API). Pasted links checked weekly; last check {{ box_checked }}.</dd>
+    </div>
+    <div class="py-2 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-4">
+      <dt class="font-semibold">Pasted-link check</dt>
+      <dd>{{ link_summary }} {% include 'lab/the-record/_sample.html' %}</dd>
+    </div>
+  </dl>
+  <h3 class="mt-4 mb-1">Schema check</h3>
+  {% include 'lab/the-record/_problems_table.html' with rows=schema_rows caption="Senate's Notion schema check" full=False %}
+</section>
+
+<section aria-labelledby="std-h">
+  <h2 id="std-h">2. Public Records Standard, by body</h2>
+  <p class="max-w-3xl">The standard is on the officer desk, under <a href="{% url 'lab:the_record:desk' %}#how-this-site-works">How this site works</a>. {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+  <table class="data-table">
+    <caption>Each body against the Public Records Standard</caption>
+    <thead><tr>
+      <th scope="col">Body</th><th scope="col">How the site gets its records</th><th scope="col">Records officer</th><th scope="col">Agendas (24 h before)</th><th scope="col">Minutes (within 14 days)</th><th scope="col">Folder link</th><th scope="col">Overall</th>
+    </tr></thead>
+    <tbody>
+      {% for r in standard_rows %}
+      <tr>
+        <th scope="row" data-label="Body" class="font-normal">{{ r.body }}</th>
+        <td data-label="How the site gets its records">{{ r.adapter_label }}{% if r.example %} (example){% endif %}</td>
+        <td data-label="Records officer">{{ r.records_officer }}</td>
+        <td data-label="Agendas (24 h before)">{{ r.agendas }}</td>
+        <td data-label="Minutes (within 14 days)">{{ r.minutes }}</td>
+        <td data-label="Folder link">{{ r.folder_link }}</td>
+        <td data-label="Overall">{% include 'lab/the-record/_sev.html' with sev=r.severity label=r.severity_label %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="site-h">
+  <h2 id="site-h">3. What the site is showing</h2>
+  <table class="data-table">
+    <caption>Meeting records the site shows: the Senate's from Notion, the E-Board's entered on this site</caption>
+    <thead><tr>
+      <th scope="col">Ref</th><th scope="col">Record</th><th scope="col">Date</th><th scope="col">Public</th><th scope="col">Agenda link</th><th scope="col">Minutes link</th><th scope="col">Last edited at source</th><th scope="col">On the site</th>
+    </tr></thead>
+    <tbody>
+      {% for m in rows %}
+      <tr>
+        <th scope="row" data-label="Ref" class="font-normal"><a href="{{ m.detail_url }}" class="font-mono">{{ m.ref }}</a>{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</th>
+        <td data-label="Record">{{ m.adapter_label }}</td>
+        <td data-label="Date"><time datetime="{{ m.starts_iso }}">{{ m.date_label }}</time></td>
+        <td data-label="Public">{% if m.adapter == 'notion' %}{% if m.public %}Ticked{% else %}Unticked{% endif %}{% else %}Not used{% endif %}</td>
+        <td data-label="Agenda link">{{ m.agenda_result }}</td>
+        <td data-label="Minutes link">{{ m.minutes_result }}</td>
+        <td data-label="Last edited at source">{{ m.edited_label }}</td>
+        <td data-label="On the site">{% if m.public %}Shown{% else %}Hidden (Public unticked){% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include 'lab/the-record/_source.html' with s=sources.meeting_senate %}
+  {% include 'lab/the-record/_source.html' with s=sources.meeting_eboard %}
+</section>
+
+<section aria-labelledby="prob-h">
+  <h2 id="prob-h">4. Problems</h2>
+  {% include 'lab/the-record/_problems_table.html' with rows=problems caption='Problems to fix' full=True %}
+</section>
+
+<section aria-labelledby="clear-h">
+  <h2 id="clear-h">5. All clear</h2>
+  <ul class="list-disc pl-5">
+    {% for r in all_clear %}<li>{% include 'lab/the-record/_sev.html' with sev='ok' label='OK' %} {{ r.check }}{% if r.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</li>{% endfor %}
+  </ul>
+</section>
+
+<section aria-labelledby="nc-h">
+  <h2 id="nc-h">6. What this page can't see</h2>
+  <ul class="list-disc pl-5 max-w-3xl">
+    {% for line in not_checked %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

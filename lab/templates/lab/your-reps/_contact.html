@@ -1,0 +1,6 @@
+{% if contact.mode == "none" %}
+<p class="text-sm"><span class="font-semibold">Contact route not set up yet</span> {% include "lab/your-reps/_draft.html" with why="Site owner" %}</p>
+{% else %}
+<a class="btn" href="{{ contact.href }}" aria-label="{{ contact.label }} about {{ seat_name }}">{{ contact.label }}</a>
+{% if contact.note %}<p class="mt-1 text-sm text-muted">{{ contact.note }}</p>{% endif %}
+{% endif %}

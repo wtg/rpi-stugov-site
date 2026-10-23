@@ -1,0 +1,17 @@
+{# Shared "no empty cards" rule: either cards or one line. #}
+{% if week_meetings or week_events %}
+  <ul class="plain stack">
+    {% for m in week_meetings %}{% include 'lab/front-door/_meeting_card.html' %}{% endfor %}
+    {% for e in week_events %}
+      <li class="card">
+        <h3 class="m0">{% if e.url %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}</h3>
+        <p class="m0"><time datetime="{{ e.date|date:'Y-m-d' }}">{{ e.date_short }}</time>{% if e.time %} · {{ e.time }}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</p>
+        {% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No Senate or Executive Board meetings are listed for the next 7 days.</p>
+  <p>The Graduate Council, Undergraduate Council and Judicial Board don't list meetings here; <a href="{% url 'lab:front_door:meetings' %}#files-only">see their folders</a>.</p>
+  <p><a class="tap" href="{{ past_url }}">See past meetings and records</a></p>
+{% endif %}

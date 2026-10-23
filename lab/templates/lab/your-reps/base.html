@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Your Student Government{% endblock %} · Prototype · Rensselaer Union</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { page: '#f6f6f8', ink: '#1a1a2e', muted: '#4a4a68', accent: '#d6001c', link: '#a50015', line: '#e2e2ea', vacant: '#8a8aa3' },
+          fontFamily: { sans: ['Geist', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-padding-top: 1rem; }
+    body { margin: 0; font-family: Geist, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 1.0625rem; line-height: 1.6; background: #f6f6f8; color: #1a1a2e; }
+    [hidden] { display: none !important; }
+    .text-muted { color: #4a4a68; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .site a { color: #a50015; text-decoration: underline; text-underline-offset: 3px; }
+    .site a:hover { text-decoration-thickness: 3px; }
+    .site :focus-visible { outline: 3px solid #1a1a2e; outline-offset: 2px; box-shadow: 0 0 0 2px #ffdd00; border-radius: 2px; }
+    .skip { position: absolute; left: -999px; top: 0; z-index: 100; background: #fff; color: #1a1a2e !important; padding: .75rem 1rem; font-weight: 700; }
+    .skip:focus { left: .5rem; top: .5rem; }
+    .banner { background: #1a1a2e; color: #fff; font-size: .9375rem; line-height: 1.5; }
+    .site .banner a { color: #ffdd00; }
+    .banner .banner-muted { color: #d9d9e8; }
+    .site a.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1rem; border-radius: .5rem; background: #d6001c; color: #fff; font-weight: 700; text-decoration: none; }
+    .site a.btn:hover { background: #a50015; }
+    .site a.btn-choose { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 56px; padding: .5rem .75rem; border: 2px solid #1a1a2e; border-radius: .75rem; background: #fff; color: #1a1a2e; font-weight: 700; text-align: center; text-decoration: none; line-height: 1.25; }
+    .site a.btn-choose:hover { background: #1a1a2e; color: #fff; }
+    .btn-button { min-height: 44px; padding: .5rem 1rem; border-radius: .5rem; background: #d6001c; color: #fff; font-weight: 700; font-size: 1rem; border: 0; cursor: pointer; }
+    .btn-button:hover { background: #a50015; }
+    .card { background: #fff; border: 1px solid #e2e2ea; border-radius: .75rem; padding: 16px; }
+    .card-vacant { border: 2px dashed #8a8aa3; }
+    .avatar { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 9999px; background: #1a1a2e; color: #fff; font-weight: 700; font-size: 1.125rem; }
+    .avatar-lg { width: 96px; height: 96px; font-size: 2rem; }
+    .field { width: 100%; min-height: 44px; border: 2px solid #4a4a68; border-radius: .5rem; background: #fff; color: #1a1a2e; padding: .5rem .75rem; font: inherit; }
+    .field-error { border-color: #a50015; }
+    .error-text { color: #8a0012; font-weight: 600; }
+    .derived { border-bottom: 1px dotted #4a4a68; cursor: help; white-space: nowrap; }
+    .nav-desktop { display: none; }
+    .nav-mobile summary { min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; font-weight: 700; padding: 0 .75rem; border: 2px solid #1a1a2e; border-radius: .5rem; background: #fff; }
+    @media (min-width: 768px) {
+      .nav-desktop { display: flex; }
+      .nav-mobile { display: none; }
+    }
+    .site nav a.nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .75rem; color: #1a1a2e; font-weight: 600; text-decoration: none; border-radius: .5rem; }
+    .site nav a.nav-link:hover { text-decoration: underline; }
+    .site nav a.nav-link[aria-current="page"] { background: #1a1a2e; color: #fff; }
+    .overflow-x-auto { position: relative; }
+    .data-table { width: 100%; border-collapse: collapse; background: #fff; font-size: .9375rem; }
+    .data-table caption { text-align: left; font-weight: 700; padding: .5rem 0; }
+    .data-table th, .data-table td { border: 1px solid #c9c9d6; padding: .5rem .75rem; text-align: left; vertical-align: top; }
+    .data-table th { background: #ececf2; }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body class="site">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <div class="banner" role="region" aria-label="Prototype notice">
+    <div class="mx-auto max-w-6xl px-4 py-2">
+      <details>
+        <summary style="cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600">Prototype layout · not the official site <span style="font-weight:400;margin-left:.4em;text-decoration:underline">What's real?</span></summary>
+        <p>Prototype layout for testing. Not the official site. Items marked Sample are made up. Lines like 'synced {{ sync.notion_minutes_ago }} min ago' are simulated. Nothing here is connected to Notion. Only the Senate's items would come from Notion. <a href="{{ lab_index_url }}">All prototypes</a></p>
+      <p class="mt-1">Key: <strong>Draft: confirm</strong> means the Union Constitution doesn't set it and someone needs to confirm it. <strong>(derived)</strong> means it is our own arithmetic.</p>
+      </details>
+      <p class="mt-1">
+        {% if officer %}Viewing as an officer (mock) · <a href="{{ officer_toggle_url }}">Hide officer links</a>
+        <span class="banner-muted block text-sm">On the real site these appear only to signed-in officers.</span>
+        {% else %}Viewing as a student · <a href="{{ officer_toggle_url }}">Show officer links</a>{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <header class="border-b border-line bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
+      <div>
+        <a href="{% url 'lab:your_reps:home' %}" class="block text-xl font-bold leading-tight" style="color:#1a1a2e;text-decoration:none">Your Student Government</a>
+        <span class="block text-sm text-muted">Rensselaer Union</span>
+      </div>
+      <p id="you-chip" hidden class="rounded-full border border-ink bg-page px-3 py-1 text-sm">You: <a id="you-chip-link" href="{% url 'lab:your_reps:home' %}"></a> · <a href="{% url 'lab:your_reps:home' %}#chooser">change</a></p>
+      <nav class="nav-desktop gap-1" aria-label="Main">
+        {% for item in nav %}<a class="nav-link" href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+      </nav>
+      <nav class="nav-mobile" aria-label="Main (menu)">
+        <details>
+          <summary>Menu</summary>
+          <ul role="list" class="mt-2 rounded-xl border border-line bg-white p-2">
+            {% for item in nav %}<li><a class="nav-link" href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }}</a></li>{% endfor %}
+          </ul>
+        </details>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="mx-auto max-w-6xl px-4 py-6 md:py-10">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="mt-8 border-t border-line bg-white">
+    <div class="mx-auto max-w-6xl space-y-2 px-4 py-6 text-sm">
+      <p>Part of the Rensselaer Union · 110 8th Street, Troy, NY 12180</p>
+      {% if site_contact_email or site_office_hours or site_office_location %}
+      <p>{% if site_contact_email %}Contact: <a href="mailto:{{ site_contact_email }}">{{ site_contact_email }}</a>{% endif %}{% if site_office_location %} · {{ site_office_location }}{% endif %}{% if site_office_hours %} · Office hours: {{ site_office_hours }}{% endif %}</p>
+      {% endif %}
+      <p class="text-muted">In the real site the roster is kept on this site by each body's roster officer. In this prototype it comes from the Union agendas of 30 Jul and 25 Aug 2026.</p>
+      <p>Maintained by the Web Technologies Group · <a href="{% url 'lab:your_reps:how' %}#site">How this site works</a></p>
+    </div>
+  </footer>
+
+  {{ chip_data|json_script:"yr-data" }}
+  <script>
+    (function () {
+      try {
+        var key = localStorage.getItem('yr-key');
+        var data = JSON.parse(document.getElementById('yr-data').textContent);
+        if (key && data[key]) {
+          var link = document.getElementById('you-chip-link');
+          link.textContent = data[key].label;
+          link.href = data[key].url;
+          document.getElementById('you-chip').hidden = false;
+        }
+      } catch (e) {}
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

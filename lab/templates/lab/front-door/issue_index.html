@@ -1,0 +1,30 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>Raise an issue</h1>
+<p class="prose">Pick what it's about. We'll show you who handles it and what student government can and can't change.</p>
+
+<form method="get" action="" class="prose" role="search" aria-label="Filter topics">
+  <label for="topic-q" style="font-weight:700">Filter topics</label><br>
+  <input id="topic-q" name="q" type="search" value="{{ q }}" style="min-height:44px;border:2px solid #0b0c0c;padding:0 .5rem;width:min(100%,18rem);font:inherit;border-radius:0">
+  <button type="submit" style="min-height:44px;padding:0 1rem;border:2px solid #0b0c0c;background:#0b0c0c;color:#fff;font:inherit;font-weight:700">Filter</button>
+  {% if q %}<a class="tap" href="{% url 'lab:front_door:issue_index' %}">Show all topics</a>{% endif %}
+</form>
+
+{% if topics %}
+  <ul class="plain stack" style="margin-top:1rem">
+    {% for t in topics %}
+      <li class="row">
+        <div>
+          <a class="row-title" href="{{ t.url }}">{{ t.question }}</a>
+          <p>{{ t.owner_label }}</p>
+        </div>
+        <span class="chev" aria-hidden="true">&rsaquo;</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No topics match "{{ q }}". Try a shorter word, or choose <a href="{% url 'lab:front_door:issue_topic' 'other' %}">Something else</a>.</p>
+{% endif %}
+<p class="fd-sm fd-muted">Not sure? Choose Something else.</p>
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

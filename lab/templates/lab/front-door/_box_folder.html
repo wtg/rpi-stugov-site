@@ -1,0 +1,8 @@
+{% if folder.embed_url %}
+  <p><a class="tap" href="{{ folder.shared_url }}">Open the folder in Box</a></p>
+  <iframe title="Box folder: {{ folder.path }}" src="{{ folder.embed_url }}" class="hidden sm:block w-full h-[28rem] border"></iframe>
+  <p class="sm:hidden fd-sm fd-muted">Box says its folder view isn't built for mobile browsers, so phones get the link only.</p>
+{% else %}
+  <div class="dashed">Box folder embed goes here: {{ folder.path }}. The shared link hasn't been added yet.</div>
+{% endif %}
+{% include 'lab/front-door/_file_source.html' with has_link=folder.shared_url missing=sources.folder_missing %}

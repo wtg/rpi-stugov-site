@@ -1,0 +1,97 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}How decisions are made{% endblock %}
+{% block content %}
+<h1>How decisions are made</h1>
+<p class="mt-2 max-w-3xl">From the Rensselaer Union Constitution, last amended 6 Feb 2026. Where the Constitution leaves something to a body's own rules, we say so.</p>
+
+<nav aria-label="On this page" class="mt-4">
+  <ul class="flex flex-wrap gap-x-6 gap-y-1 list-none p-0">
+    <li><a href="#votes" class="inline-block py-1">Votes needed</a></li>
+    <li><a href="#petitions" class="inline-block py-1">What students can force</a></li>
+    <li><a href="#records" class="inline-block py-1">Records the Constitution names</a></li>
+    <li><a href="#transparency" class="inline-block py-1">Transparency rules</a></li>
+  </ul>
+</nav>
+
+<section id="votes" aria-labelledby="votes-h" class="scroll-mt-4">
+  <h2 id="votes-h">Votes needed</h2>
+  <table class="data-table">
+    <caption>Votes the Constitution requires</caption>
+    <thead><tr>
+      <th scope="col">Action</th><th scope="col">Who votes</th><th scope="col">Votes needed</th><th scope="col">For a full Senate (derived)</th><th scope="col">Source</th>
+    </tr></thead>
+    <tbody>
+      {% for t in thresholds %}
+      <tr id="t-{{ t.slug }}">
+        <th scope="row" data-label="Action" class="font-normal">{{ t.action }}</th>
+        <td data-label="Who votes">{{ t.body }}</td>
+        <td data-label="Votes needed">{{ t.needs }}{% if t.draft %} {% include 'lab/the-record/_draft.html' with why=t.draft %}{% endif %}</td>
+        <td data-label="For a full Senate (derived)">{% if t.derived %}{{ t.derived }} <abbr title="{{ derived_title }}">(derived)</abbr>{% else %}Not applicable{% endif %}</td>
+        <td data-label="Source">{{ t.cite }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="text-sm mt-2 max-w-3xl">'All voting seats' is the Constitution's 'total voting membership'. Our derived numbers assume all 29 seats count, including vacant ones; the Constitution doesn't say.</p>
+  <p class="text-sm text-muted">Source: Union Constitution, as listed in the Source column.</p>
+</section>
+
+<section id="petitions" aria-labelledby="pet-h" class="scroll-mt-4">
+  <h2 id="pet-h">What students can force</h2>
+  <table class="data-table">
+    <caption>Petitions in the Constitution</caption>
+    <thead><tr>
+      <th scope="col">Goal</th><th scope="col">Signatures needed</th><th scope="col">Deadline</th><th scope="col">Result</th><th scope="col">Source</th>
+    </tr></thead>
+    <tbody>
+      {% for p in petitions %}
+      <tr>
+        <th scope="row" data-label="Goal" class="font-normal">{{ p.goal }}</th>
+        <td data-label="Signatures needed">{{ p.signatures }}</td>
+        <td data-label="Deadline">{{ p.deadline }}</td>
+        <td data-label="Result">{{ p.result }}</td>
+        <td data-label="Source">{% include 'lab/the-record/_cite.html' with art=p.cite %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="mt-2 max-w-3xl">Not set by the Constitution: petition format, where to hand it in, and how signatures are checked. {% include 'lab/the-record/_draft.html' with why='Senate bylaws or rules' %}</p>
+  <p class="mt-2 max-w-3xl">A petition alone can't amend the Constitution. Amendments need 2/3 of the Senate first, then a campus vote with at least 20% turnout. {% include 'lab/the-record/_cite.html' with art='Art. XII §1; Art. XIII §1' %}</p>
+</section>
+
+<section id="judicial-board" aria-labelledby="jb-h" class="scroll-mt-4">
+  <h2 id="jb-h">Bring a case</h2>
+  <p class="max-w-3xl">Any charge that the Union Constitution, the Rensselaer Student Bill of Rights, or student conduct rules were violated can be referred to the Judicial Board, which can rule legislation unconstitutional. {% include 'lab/the-record/_cite.html' with art='Art. VII §3' %}</p>
+  <p class="mt-2">How to file: not published {% include 'lab/the-record/_draft.html' with why='Judicial Board bylaws' %}</p>
+</section>
+
+<section id="records" aria-labelledby="rec-h" class="scroll-mt-4">
+  <h2 id="rec-h">Records the Constitution names</h2>
+  <table class="data-table">
+    <caption>Records the Constitution names</caption>
+    <thead><tr><th scope="col">Record</th><th scope="col">What it is</th><th scope="col">On this site</th><th scope="col">Source</th></tr></thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <th scope="row" data-label="Record" class="font-normal">{{ r.name }}</th>
+        <td data-label="What it is">{{ r.what }}</td>
+        <td data-label="On this site">{{ r.published_here }} {% include 'lab/the-record/_draft.html' with why='Site owner' %}</td>
+        <td data-label="Source">{% include 'lab/the-record/_cite.html' with art=r.cite %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section id="transparency" aria-labelledby="tr-h" class="scroll-mt-4">
+  <h2 id="tr-h">Transparency rules</h2>
+  <ul class="list-disc pl-5 space-y-2 max-w-3xl">
+    {% for r in transparency %}
+      <li>{{ r.text }} {% include 'lab/the-record/_cite.html' with art=r.cite %}</li>
+    {% endfor %}
+    <li>{{ honest_line }}</li>
+  </ul>
+</section>
+
+<div class="mt-8">{% include 'lab/the-record/_source.html' with s=sources.wagtail %}</div>
+{% endblock %}

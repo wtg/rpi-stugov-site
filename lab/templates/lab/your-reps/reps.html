@@ -1,0 +1,161 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}{{ c.label }}: who represents you{% endblock %}
+{% block content %}
+{% if rollover %}
+<div class="mb-4 rounded-xl border-2 border-ink bg-yellow-100 p-4" role="note">
+  <p><strong>Rollover preview (mock):</strong> the 2027–28 term is set as current on this site and no assignments have been entered yet, so every seat shows open. Nobody had to clear last year's names.</p>
+  <p class="mt-1"><a href="?">Leave the preview</a></p>
+</div>
+{% endif %}
+
+<h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">{{ c.label }}: who represents you</h1>
+<p class="mt-2 text-lg">{{ c.plain }}{% if c.plain_cite %} {% include "lab/your-reps/_cite.html" with art=c.plain_cite %}{% endif %}</p>
+<p class="mt-2"><a href="{% url 'lab:your_reps:raise' %}?for={{ key }}">Raise an issue with your reps →</a></p>
+
+{% if empty_class %}
+<section aria-labelledby="senators-h" class="mt-8">
+  <h2 id="senators-h" class="text-2xl font-bold">Your senators</h2>
+  <div class="card mt-3">
+    <p>{{ c.election_note }}</p>
+    {% include "lab/your-reps/_cite.html" with art=c.election_cite %}
+    <p class="mt-3 font-semibold">Until then, these people represent everyone:</p>
+  </div>
+</section>
+<section aria-labelledby="everyone-h" class="mt-4">
+  <h2 id="everyone-h" class="text-2xl font-bold">Represents everyone</h2>
+  {% include "lab/your-reps/_cards.html" with cards=everyone %}
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+</section>
+<section aria-labelledby="eb-h" class="mt-8">
+  <h2 id="eb-h" class="text-2xl font-bold">Your Executive Board representative</h2>
+  <div class="card mt-3">
+    <p>Your E-Board Class Representative: Seat open. Appointed within three weeks after the fall elections.</p>
+    {% include "lab/your-reps/_cite.html" with art="Art. VIII §12" %}
+  </div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+</section>
+{% else %}
+{% if senators %}
+<section aria-labelledby="senators-h" class="mt-8">
+  <h2 id="senators-h" class="text-2xl font-bold">Your senators</h2>
+  <p class="mt-1">Your group has {{ c.senate_seats }} Senate seats under the Union Constitution
+    {% if senators_open %}({{ senators_open }} open){% endif %}
+    {% include "lab/your-reps/_cite.html" with art=c.seats_cite %}</p>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=senators %}</div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+  <p class="text-sm text-muted">{{ agenda.senate }}</p>
+  {% if show_reconciliation %}
+  <div class="card mt-3" id="reconciliation">
+    <h3 class="font-bold">Why the agenda and this page differ</h3>
+    <p class="mt-1">{{ reconciliation_note }}</p>
+    {% include "lab/your-reps/_cite.html" with art=reconciliation_cite %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if is_clubs %}
+<section aria-labelledby="clubreps-h" class="mt-8">
+  <h2 id="clubreps-h" class="text-2xl font-bold">Club and organisation representatives</h2>
+  <p class="mt-1">The Executive Board has 5 to 7 seats for club and organisation reps. The latest roster lists 7. {% include "lab/your-reps/_cite.html" with art="Art. VII §2" %}</p>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=club_reps %}</div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+  <p class="mt-2 text-sm text-muted">{{ eb_warning }} {{ agenda.eb }}</p>
+</section>
+<section aria-labelledby="vpclubs-h" class="mt-8">
+  <h2 id="vpclubs-h" class="text-2xl font-bold">Vice President for Club Relations</h2>
+  <p class="mt-1">{% include "lab/your-reps/_draft.html" with why="E-Board bylaws" %} The Constitution has no VP seats; this title comes from the Executive Board's own bylaws.</p>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=vp_clubs %}</div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+</section>
+<section aria-labelledby="advisors-h" class="mt-8">
+  <h2 id="advisors-h" class="text-2xl font-bold">Club Financial Advisors</h2>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=advisors %}</div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+</section>
+<section aria-labelledby="money-h" class="mt-8">
+  <h2 id="money-h" class="text-2xl font-bold">Club money</h2>
+  <div class="card mt-3">
+    <p>The Executive Board hands out Union money, and the budget and records of extra spending are public documents. {% include "lab/your-reps/_cite.html" with art="Art. VII §2" %}</p>
+    <p class="mt-3">As printed on Executive Board Agenda 01 (25 Aug 2026): $100,000 in club contingencies {% include "lab/your-reps/_draft.html" with why="E-Board bylaws" %} and $60,000 in travel contingencies, none of it spent yet.</p>
+    {% include "lab/your-reps/_source.html" with s=sources.quoted_budget %}
+  </div>
+</section>
+{% endif %}
+
+{% if eb_class %}
+<section aria-labelledby="eb-h" class="mt-8">
+  <h2 id="eb-h" class="text-2xl font-bold">Your Executive Board representative</h2>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=eb_class %}</div>
+  <p class="mt-2">Appointed by the President of the Union with 2/3 Senate approval, not elected. {% include "lab/your-reps/_cite.html" with art="Art. VII §2" %}</p>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+  <p class="text-sm text-muted">{{ eb_warning }} {{ agenda.eb }}</p>
+</section>
+{% endif %}
+{% endif %}
+
+{% if is_class %}
+<section aria-labelledby="cc-h" class="mt-8">
+  <h2 id="cc-h" class="text-2xl font-bold">Your Class Council</h2>
+  <div class="card mt-3">
+    <p>Your class elects a Class Council: a Class President, a Vice President, at least 8 Representatives and your 4 Class Senators. It recommends how your class dues are spent and fills vacant Class Senator seats.</p>
+    {% include "lab/your-reps/_cite.html" with art="Art. VII §5; Art. XI §6" %}
+    <p class="mt-2 font-semibold">Roster not listed yet.</p>
+  </div>
+</section>
+{% endif %}
+
+{% if is_grad %}
+<section aria-labelledby="gc-h" class="mt-8">
+  <h2 id="gc-h" class="text-2xl font-bold">Your Graduate Council</h2>
+  <div class="card mt-3">
+    <p>The Graduate Council is the advocacy body for graduate students: the 7 Graduate Senators above plus at least 5 at-large members. It elects its own President from among its members and controls graduate class dues.</p>
+    {% include "lab/your-reps/_cite.html" with art="Art. VII §4; Amendment V" %}
+    <p class="mt-3">Graduate Council report at Senate #12: {% if gc_report %}<a href="{% url 'lab:your_reps:person' gc_report.slug %}">{{ gc_report.name }} {{ gc_report.class_label }}</a>{% endif %}. E-Board Graduate Council rep: {% if gc_rep %}<a href="{% url 'lab:your_reps:person' gc_rep.slug %}">{{ gc_rep.name }} {{ gc_rep.class_label }}</a>{% endif %}.</p>
+    <p class="text-sm text-muted">{{ agenda.senate }}; {{ agenda.eb|cut:"Source: " }}</p>
+  </div>
+</section>
+{% endif %}
+
+{% if not empty_class %}
+<section aria-labelledby="everyone-h" class="mt-8">
+  <h2 id="everyone-h" class="text-2xl font-bold">Represents everyone</h2>
+  <p class="mt-1">The Grand Marshal, the President of the Union and the Members-at-Large speak for every Union member.</p>
+  <div class="mt-3">{% include "lab/your-reps/_cards.html" with cards=everyone %}</div>
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+</section>
+{% endif %}
+
+<section aria-labelledby="say-h" class="mt-8">
+  <h2 id="say-h" class="text-2xl font-bold">Your say over these seats</h2>
+  <ul role="list" class="card mt-3 space-y-3">
+    {% if say_rule %}
+    <li>{% if senators %}Your senators answer to:{% else %}These representatives answer to:{% endif %} {{ say_rule.answers_to }}
+      {% if say_rule.draft %}{% include "lab/your-reps/_draft.html" with why=say_rule.draft %}{% endif %}
+      {% if say_rule.cite %}{% include "lab/your-reps/_cite.html" with art=say_rule.cite %}{% endif %}</li>
+    {% endif %}
+    {% if say_challenge %}
+    <li>If it's filled by appointment, 20% of you can force an election within two weeks of the announcement. {% include "lab/your-reps/_cite.html" with art="Art. XI §5" %}</li>
+    {% endif %}
+    <li>If they won't act: 10% of Union members can force a binding student vote. {% include "lab/your-reps/_cite.html" with art="Art. XII §1" %}</li>
+  </ul>
+  <p class="mt-2"><a href="{% url 'lab:your_reps:how' %}#powers">All your powers →</a></p>
+</section>
+
+<section aria-labelledby="issues-h" class="mt-8">
+  <h2 id="issues-h" class="text-2xl font-bold">Issues for this group</h2>
+  {% if issues %}
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for i in issues %}<li>{% include "lab/your-reps/_issue_mini.html" %}</li>{% endfor %}
+  </ul>
+  {% else %}<p class="mt-2">No public issues for this group yet.</p>{% endif %}
+  {% include "lab/your-reps/_source.html" with s=sources.issues %}
+</section>
+
+<section aria-labelledby="other-h" class="mt-8">
+  <h2 id="other-h" class="text-xl font-bold">Belong to another group too?</h2>
+  <p class="mt-1">Also see
+    {% for k, name in other_groups %}<a href="{% url 'lab:your_reps:reps' k %}">{{ name }}</a>{% if not forloop.last %} / {% endif %}{% endfor %}
+    · <a href="{% url 'lab:your_reps:home' %}#chooser">Choose a different group</a></p>
+</section>
+{% endblock %}

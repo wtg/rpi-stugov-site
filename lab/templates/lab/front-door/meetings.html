@@ -1,0 +1,70 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>Meetings and decisions</h1>
+<p class="prose">Anyone can attend Student Senate and Executive Board meetings. Each meeting has its own page with the agenda, minutes and who was on the body.</p>
+
+<h2 id="upcoming">Upcoming</h2>
+{% include 'lab/front-door/_week.html' %}
+
+<h2 id="past">Past meetings</h2>
+<div class="tbl-wrap" role="region" aria-label="Past meetings table" tabindex="0">
+  <table>
+    <caption>Past meetings</caption>
+    <thead>
+      <tr><th scope="col">Body</th><th scope="col">Meeting</th><th scope="col">Date</th><th scope="col">Record</th><th scope="col">Agenda</th><th scope="col">Minutes</th></tr>
+    </thead>
+    <tbody>
+      {% for m in past %}
+        <tr>
+          <th scope="row">{{ m.body_name }}</th>
+          <td><a href="{{ m.url }}">#{{ m.number }} · {{ m.term_label }}</a></td>
+          <td><time datetime="{{ m.date|date:'Y-m-d' }}">{{ m.date_short }}</time></td>
+          <td>{{ m.record_label }}</td>
+          <td>{% if m.agenda_url %}<a href="{{ m.agenda_url }}">Open agenda (PDF in Box)</a>{% else %}{% include 'lab/front-door/_agenda_missing.html' %}{% endif %}</td>
+          <td>{% if m.minutes_url %}<a href="{{ m.minutes_url }}">Open minutes (PDF in Box)</a>{% else %}Minutes link not added yet ({{ m.days_since }} days since meeting){% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include 'lab/front-door/_source.html' with s=sources.meeting_senate %}
+{% include 'lab/front-door/_source.html' with s=sources.meeting_eboard %}
+
+<h2 id="decided">Decisions</h2>
+<p class="prose">Decisions listed here are Senate motions.</p>
+{% include 'lab/front-door/_decisions.html' %}
+{% include 'lab/front-door/_source.html' with s=sources.motions %}
+<p class="prose">The Executive Board, Graduate Council, Undergraduate Council and Judicial Board record decisions in their minutes and rulings, published as files.</p>
+{% include 'lab/front-door/_source.html' with s=sources.in_minutes %}
+
+<h2 id="files-only">Bodies that publish records as files</h2>
+{% for f in folder_bodies %}
+  <h3>{{ f.name }}</h3>
+  <p class="prose">The {{ f.name }} publishes its records as files. It doesn't list meetings on this site. Files are named by date, so the newest sort last.</p>
+  {% if f.note %}<p class="prose">{{ f.note.text }} {% include 'lab/front-door/_draft.html' with why=f.note.draft %}</p>{% endif %}
+  {% if f.example %}<p class="fd-sm fd-muted">Example choice: the {{ f.name }} hasn't decided how it keeps records.</p>{% endif %}
+  {% include 'lab/front-door/_box_folder.html' with folder=f.folder %}
+  {% include 'lab/front-door/_source.html' with s=sources.folder_only %}
+{% endfor %}
+
+<h2 id="files">All files</h2>
+<p class="prose">Every agenda, set of minutes and attachment is a PDF in the Union's Box. Files are named like <code>{{ file_example }}</code>, so the newest sort last.</p>
+{% for f in box_folders %}
+  <h3>{{ f.label }}</h3>
+  {% include 'lab/front-door/_box_folder.html' with folder=f %}
+{% endfor %}
+{% if site.box_archive_url %}<p><a class="tap" href="{{ site.box_archive_url }}">Whole Box archive</a></p>{% endif %}
+
+<h2 id="how">How meetings work</h2>
+<details>
+  <summary>The agenda has a fixed order</summary>
+  <div class="prose">
+    <p>Student Senate agendas follow the same order each time:</p>
+    <ol class="num">
+      {% for s in senate_sections %}<li><strong>{{ s.title }}</strong>. {{ s.plain }}</li>{% endfor %}
+    </ol>
+    <p class="fd-sm fd-muted">Source: {{ agenda_src.senate }}. The plain-language notes are written on this site.</p>
+  </div>
+</details>
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

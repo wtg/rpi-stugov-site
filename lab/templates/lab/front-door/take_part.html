@@ -1,0 +1,62 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>Run for office or start a petition</h1>
+<p class="prose">As a Union member you can do more than vote. These are the things the Rensselaer Union Constitution lets any student start.</p>
+<p class="fd-sm fd-muted">{{ constitution_line }}.</p>
+
+<nav aria-label="Ways to take part">
+  <ul class="plain jump">
+    {% for p in processes %}<li><a class="tap" href="#{{ p.id }}">{{ p.title }}</a></li>{% endfor %}
+  </ul>
+</nav>
+
+{% for p in processes %}
+  <section id="{{ p.id }}" aria-labelledby="h-{{ p.id }}">
+    <h2 id="h-{{ p.id }}">{{ p.title }}</h2>
+    <p class="prose">{{ p.lead }}</p>
+
+    {% if p.table %}
+      <div class="tbl-wrap" role="region" aria-label="{{ p.table.caption }}" tabindex="0">
+        <table>
+          <caption>{{ p.table.caption }}</caption>
+          <thead><tr>{% for h in p.table.head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for row in p.table.rows %}
+              <tr>{% for cell in row %}{% if forloop.first %}<th scope="row">{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="box prose">
+        <dl class="m0">
+          {% if p.how_to_file %}<dt>How to file</dt><dd>Not published yet</dd>{% endif %}
+          {% if p.who %}<dt>Who can</dt><dd>{{ p.who }}
+            {% if p.who_links %}<br>{% for l in p.who_links %}<a class="tap" href="{{ l.url }}">{{ l.label }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</dd>{% endif %}
+          {% if p.needs %}<dt>What it takes</dt><dd>{{ p.needs }}</dd>{% endif %}
+          {% if p.timing %}<dt>When</dt><dd>{{ p.timing }}</dd>{% endif %}
+          {% if p.then %}<dt>What happens next</dt><dd>{{ p.then }}</dd>{% endif %}
+        </dl>
+      </div>
+    {% endif %}
+
+    {% if p.example %}<p class="prose"><strong>For example:</strong> {{ p.example }}</p>{% endif %}
+
+    {% if p.id == "run" %}
+      <p class="prose">Ask the Elections Commission{% if elections_chair %} ({{ elections_chair }}){% endif %}. {% include 'lab/front-door/_draft.html' with why="Senate election rules" %}</p>
+      {% if elections_chair %}{% include 'lab/front-door/_source.html' with s=sources.roster %}{% endif %}
+      <p><a class="tap" href="{{ p.see_seats_url }}">See open seats</a></p>
+    {% endif %}
+
+    {% if p.not_set %}
+      <h3>Not set by the Constitution</h3>
+      <ul class="bul prose">{% for n in p.not_set %}<li>{{ n }}</li>{% endfor %}</ul>
+      <p>{% include 'lab/front-door/_draft.html' with why=p.not_set_why %}</p>
+    {% endif %}
+    {% include 'lab/front-door/_cite.html' with art=p.cite %}
+  </section>
+{% endfor %}
+
+<p class="prose"><strong>When the Senate publishes petition and ballot rules, each section gets a start button.</strong></p>
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

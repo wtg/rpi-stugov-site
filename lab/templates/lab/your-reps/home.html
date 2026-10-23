@@ -1,0 +1,87 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}Your student government{% endblock %}
+{% block content %}
+<h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">Your student government: who represents you, and what they're doing about it.</h1>
+
+<section id="chooser" aria-labelledby="chooser-h" class="mt-6">
+  <h2 id="chooser-h" class="text-2xl font-bold">I'm a…</h2>
+  <p id="go-link" hidden class="mt-2"><a id="go-link-a" href="#"><span class="font-bold">Go to your reps:</span> <span id="go-link-label"></span></a></p>
+  <ul role="list" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+    {% for key, c in chooser_rows.0 %}
+    <li><a class="btn-choose h-full" href="{% url 'lab:your_reps:reps' key %}" data-key="{{ key }}"><span class="text-xl">{{ c.chooser }}</span>{% if c.kind == "class" %}<span class="text-xs font-semibold">{{ c.label }}</span>{% elif key == "graduate" %}<span class="text-xs font-semibold">Graduate students</span>{% endif %}</a></li>
+    {% endfor %}
+  </ul>
+  <ul role="list" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+    {% for key, c in chooser_rows.1 %}
+    <li><a class="btn-choose h-full" href="{% url 'lab:your_reps:reps' key %}" data-key="{{ key }}"><span>{{ c.chooser }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <p class="mt-3 text-muted">You can belong to more than one group, for example Class of 2028 and Independent.</p>
+</section>
+
+<section aria-labelledby="week-h" class="mt-8">
+  <h2 id="week-h" class="text-2xl font-bold">This week</h2>
+  <p class="mt-2">
+    {% if meetings_soon or events_soon %}
+      {% for m in meetings_soon %}{{ m.name }}: <time datetime="{{ m.date|date:'Y-m-d' }}">{{ m.date|date:"j M Y" }}</time>, {{ m.time }}, {{ m.place }}. {% endfor %}
+      {% for e in events_soon %}{% if e.url %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %} on <time datetime="{{ e.date|date:'Y-m-d' }}">{{ e.date|date:"j M Y" }}</time>. {% endfor %}
+    {% else %}
+      No meetings listed this week. The Senate last met {{ last_senate }}.
+    {% endif %}
+    <a href="{% url 'lab:your_reps:how' %}#meetings">Meeting dates and places</a>
+  </p>
+  {% for ms in meeting_sources %}{% include "lab/your-reps/_source.html" with s=ms %}{% endfor %}
+</section>
+
+<section aria-labelledby="requested-h" class="mt-8">
+  <h2 id="requested-h" class="text-2xl font-bold">Most requested</h2>
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-3">
+    <li class="card"><a class="text-lg font-bold" href="{% url 'lab:your_reps:raise' %}">Raise an issue</a><p class="mt-1 text-muted">Tell the right seat what's wrong.</p></li>
+    <li class="card"><a class="text-lg font-bold" href="{% url 'lab:your_reps:reps' 'clubs' %}">Get money for your club</a><p class="mt-1 text-muted">Who decides, and what is in the budget.</p></li>
+    <li class="card"><a class="text-lg font-bold" href="{% url 'lab:your_reps:how' %}#speak">Speak at a meeting</a><p class="mt-1 text-muted">Anyone may speak at the start and end.</p></li>
+  </ul>
+</section>
+
+<section aria-labelledby="loop-h" class="mt-8">
+  <h2 id="loop-h" class="text-2xl font-bold">You said, we did</h2>
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for i in recent_issues %}<li>{% include "lab/your-reps/_issue_mini.html" %}</li>{% endfor %}
+  </ul>
+  {% include "lab/your-reps/_source.html" with s=sources.issues %}
+  <p class="mt-1"><a href="{% url 'lab:your_reps:loop' %}">See every item →</a></p>
+</section>
+
+<section aria-labelledby="topics-h" class="mt-8">
+  <h2 id="topics-h" class="text-2xl font-bold">Who handles what</h2>
+  <ul role="list" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for t in home_topics %}
+    <li class="card"><a class="font-bold" href="{% url 'lab:your_reps:raise' %}?topic={{ t.slug }}">{{ t.question }}</a><p class="mt-1 text-sm text-muted">Goes to: {{ t.owner_label }}</p></li>
+    {% endfor %}
+  </ul>
+  <p class="mt-2"><a href="{% url 'lab:your_reps:raise' %}">Something else? See every topic →</a></p>
+</section>
+
+{% include "lab/your-reps/_source.html" with s=sources.wagtail %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var links = document.querySelectorAll('#chooser a[data-key]');
+    for (var i = 0; i < links.length; i++) {
+      links[i].addEventListener('click', function () {
+        try { localStorage.setItem('yr-key', this.getAttribute('data-key')); } catch (e) {}
+      });
+    }
+    try {
+      var key = localStorage.getItem('yr-key');
+      var data = JSON.parse(document.getElementById('yr-data').textContent);
+      if (key && data[key]) {
+        document.getElementById('go-link-a').href = data[key].url;
+        document.getElementById('go-link-label').textContent = data[key].label;
+        document.getElementById('go-link').hidden = false;
+      }
+    } catch (e) {}
+  })();
+</script>
+{% endblock %}

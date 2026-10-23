@@ -1,0 +1,108 @@
+{% extends "lab/your-reps/base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<p class="mb-3"><a href="{% url 'lab:your_reps:people' %}">← Everyone A–Z</a></p>
+
+<div class="flex items-center gap-4">
+  {% if p.public_profile and p.photo %}
+  <img src="{{ p.photo }}" alt="" class="h-24 w-24 rounded-full object-cover">
+  {% else %}
+  <span class="avatar avatar-lg" aria-hidden="true">{{ initials }}</span>
+  {% endif %}
+  <div>
+    <h1 class="text-[1.875rem] font-bold leading-tight md:text-[2.5rem]">{{ p.name }}</h1>
+    {% if p.class_label %}<p class="text-lg text-muted">{{ p.class_label }}</p>{% endif %}
+  </div>
+</div>
+{% if not p.public_profile %}
+<p class="mt-3 text-muted">Photo, bio and office hours appear only if this member opts in.</p>
+{% endif %}
+
+<section aria-labelledby="roles-h" class="mt-8">
+  <h2 id="roles-h" class="text-2xl font-bold">Roles</h2>
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2">
+    {% for r in roles %}
+    <li class="card">
+      <h3 class="text-lg font-bold leading-snug">{{ r.seat }}</h3>
+      <p>{{ r.body }} · {{ r.term }}</p>
+      <p class="mt-2 text-sm text-muted">How this seat is filled: {{ r.rule.filled_by }}</p>
+      <p class="mt-1 text-sm text-muted">Answers to: {{ r.rule.answers_to }}</p>
+      {% if r.rule.cite %}{% include "lab/your-reps/_cite.html" with art=r.rule.cite %}{% endif %}
+      {% if r.rule.draft %}<p class="mt-1">{% include "lab/your-reps/_draft.html" with why=r.rule.draft %}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section aria-labelledby="rep-h" class="mt-8">
+  <h2 id="rep-h" class="text-2xl font-bold">Represents</h2>
+  {% if represents %}
+  <ul role="list" class="mt-2 list-disc pl-6">
+    {% for r in represents %}<li>{% if r.url %}<a href="{{ r.url }}">{{ r.label }}</a>{% else %}{{ r.label }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% else %}<p class="mt-2">This role leads or supports a body rather than representing a group of students.</p>{% endif %}
+</section>
+
+<section aria-labelledby="oh-h" class="mt-8">
+  <h2 id="oh-h" class="text-2xl font-bold">Office hours</h2>
+  <p class="mt-2">{% if p.public_profile and p.office_hours %}{{ p.office_hours }}{% else %}Not listed. Shown only if this member opts in.{% endif %}</p>
+</section>
+
+{% if p.public_profile %}
+<section aria-labelledby="about-h" class="mt-8">
+  <h2 id="about-h" class="text-2xl font-bold">About</h2>
+  <dl class="mt-2 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1">
+    <dt class="text-muted">Bio</dt><dd>{{ p.bio|default:"Not listed" }}</dd>
+    <dt class="text-muted">Pronouns</dt><dd>{{ p.pronouns|default:"Not listed" }}</dd>
+    <dt class="text-muted">Major</dt><dd>{{ p.major|default:"Not listed" }}</dd>
+  </dl>
+</section>
+{% endif %}
+
+<section aria-labelledby="contact-h" class="mt-8">
+  <h2 id="contact-h" class="text-2xl font-bold">Contact</h2>
+  {% if contact %}
+  <p class="mt-1 text-muted">Goes to the seat ({{ contact_seat.seat }}), never to a personal address.</p>
+  <div class="mt-2">{% include "lab/your-reps/_contact.html" with seat_name=contact_seat.seat %}</div>
+  {% endif %}
+</section>
+
+<section aria-labelledby="work-h" class="mt-8">
+  <h2 id="work-h" class="text-2xl font-bold">Working on</h2>
+  {% if working_on %}
+  <ul role="list" class="mt-3 grid gap-4 md:grid-cols-2">
+    {% for i in working_on %}<li>{% include "lab/your-reps/_issue_mini.html" %}</li>{% endfor %}
+  </ul>
+  {% include "lab/your-reps/_source.html" with s=sources.issues %}
+  {% else %}<p class="mt-2">No public issues assigned to this seat.</p>{% endif %}
+</section>
+
+<section aria-labelledby="rev-h" class="mt-8">
+  <h2 id="rev-h" class="text-2xl font-bold">Profile reviewed</h2>
+  <p class="mt-2">{% if p.profile_reviewed %}<time datetime="{{ p.profile_reviewed|date:'Y-m-d' }}">{{ p.profile_reviewed|date:"j M Y" }}</time>{% else %}Not reviewed by this member yet. Members review their own profile on this site each semester.{% endif %}</p>
+</section>
+
+{% if officer %}
+<section aria-labelledby="fields-h" class="mt-8">
+  <h2 id="fields-h" class="text-2xl font-bold">Profile fields (officer view)</h2>
+  <div class="mt-3 overflow-x-auto" tabindex="0" role="region" aria-labelledby="fields-cap">
+    <table class="data-table">
+      <caption id="fields-cap">What the site publishes for this person</caption>
+      <thead><tr><th scope="col">Field</th><th scope="col">On the site</th><th scope="col">Why</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Name, seat, term</th><td>Public</td><td>Printed on public agendas. Entered on this site.{% if senate_copy_note %} The Senate's Notion keeps a read-only copy for attendance.{% endif %}</td></tr>
+        <tr><th scope="row">Photo, bio, pronouns, major, office hours</th><td>{% if p.public_profile %}Public{% else %}Hidden{% endif %}</td><td>{% if p.public_profile %}'Public profile' is ticked on this site.{% else %}'Public profile' is unticked on this site.{% endif %}</td></tr>
+        <tr><th scope="row">Personal email</th><td>Never published</td><td>Contact goes to the seat's role inbox.</td></tr>
+        {% if senate_copy_note %}<tr><th scope="row">Attendance</th><td>Never synced</td><td>Kept privately in the Senate's Notion.</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<div class="mt-8">
+  {% include "lab/your-reps/_source.html" with s=sources.roster %}
+  {% if in_senate %}<p class="text-sm text-muted">{{ agenda.senate }}</p>{% endif %}
+  {% if in_eb %}<p class="text-sm text-muted">{{ agenda.eb }}. {{ eb_warning }}</p>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Meetings{% endblock %}
+{% block content %}
+<h1>Meetings</h1>
+<p class="mt-2 max-w-3xl">Student Senate and Executive Board meetings, with where to find each agenda and set of minutes.</p>
+
+<form method="get" action="{% url 'lab:the_record:meetings' %}" class="mt-4 flex flex-wrap items-end gap-4" aria-label="Filter meetings">
+  <div>
+    <label for="f-body" class="block font-semibold">Body</label>
+    <select id="f-body" name="body">{% for v, l in body_options %}<option value="{{ v }}"{% if v == f_body %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  </div>
+  <div>
+    <label for="f-term" class="block font-semibold">Term</label>
+    <select id="f-term" name="term">{% for v, l in term_options %}<option value="{{ v }}"{% if v == f_term %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  </div>
+  <button type="submit" class="btn">Show meetings</button>
+</form>
+
+{% if folder_body %}
+<section aria-labelledby="folder-body-heading">
+  <h2 id="folder-body-heading">{{ folder_body.name }}</h2>
+  <p class="max-w-3xl">The {{ folder_body.name }} publishes its records as files. It doesn't list meetings on this site.</p>
+  {% if folder_body.note %}<p class="max-w-3xl mt-1">{{ folder_body.note }}{% if folder_body.draft %} {% include 'lab/the-record/_draft.html' with why=folder_body.draft %}{% endif %}</p>{% endif %}
+  <div class="mt-3">{% include 'lab/the-record/_box_folder.html' with folder=folder_body.folder_obj %}</div>
+  <div class="mt-2">{% include 'lab/the-record/_source.html' with s=sources.folder_only %}</div>
+  <p class="mt-3"><a href="{% url 'lab:the_record:meetings' %}">&larr; All meetings</a></p>
+</section>
+{% else %}
+<section aria-labelledby="up-heading">
+  <h2 id="up-heading">Upcoming</h2>
+  {% include 'lab/the-record/_meetings_table.html' with rows=upcoming caption='Upcoming meetings' past=False %}
+</section>
+
+<section aria-labelledby="past-heading">
+  <h2 id="past-heading">Past</h2>
+  {% include 'lab/the-record/_meetings_table.html' with rows=past caption='Past meetings' past=True %}
+</section>
+
+{% include 'lab/the-record/_source.html' with s=sources.meeting_senate %}
+{% include 'lab/the-record/_source.html' with s=sources.meeting_eboard %}
+{% include 'lab/the-record/_source.html' with s=sources.file %}
+{% endif %}
+
+<section id="speak" aria-labelledby="speak-heading" class="scroll-mt-4">
+  <h2 id="speak-heading">Speak at a meeting</h2>
+  <p class="max-w-3xl">Both the Senate and the Executive Board set aside time at the start and end of every meeting when anyone may speak or ask questions (Invitation to Speak, Press &amp; Visitor Q/A). Attend in person or on Webex. {% include 'lab/the-record/_draft.html' with why='Senate bylaws or rules' %}</p>
+  <p class="mt-2 max-w-3xl">Want more than a hearing? A petition signed by 10% of Union members makes the Senate hold a binding student vote. {% include 'lab/the-record/_cite.html' with art='Art. XII §1' %}
+    <a href="{% url 'lab:the_record:rules' %}#petitions">What students can force &rarr;</a></p>
+</section>
+
+{% if not folder_body %}
+<section aria-labelledby="files-only">
+  <h2 id="files-only">Bodies that publish records as files</h2>
+  <p class="max-w-3xl">These bodies don't list meetings on this site. Their agendas, minutes and rulings are files in their Box folders.</p>
+  {% for b in folder_bodies %}
+  <div class="mt-4">
+    <h3 class="mb-1">{{ b.name }} {% if b.example %}<span class="text-sm font-normal text-muted">(example)</span>{% endif %}</h3>
+    {% if b.note %}<p class="max-w-3xl mb-2">{{ b.note }}{% if b.draft %} {% include 'lab/the-record/_draft.html' with why=b.draft %}{% endif %}</p>{% endif %}
+    {% include 'lab/the-record/_box_folder.html' with folder=b.folder_obj %}
+  </div>
+  {% endfor %}
+  {% include 'lab/the-record/_source.html' with s=sources.folder_only %}
+</section>
+
+<section aria-labelledby="files">
+  <h2 id="files">All files</h2>
+  <p class="max-w-3xl">Every agenda, set of minutes and attachment is a PDF in the Union's Box, exported from Word. Names start with the date, so they sort in order.
+    {% if site.box_archive_url %}<a href="{{ site.box_archive_url }}">Whole Box archive</a>{% endif %}</p>
+  <h3 class="mt-4 mb-2">{{ box_folders.senate.label }}</h3>
+  {% include 'lab/the-record/_box_folder.html' with folder=box_folders.senate %}
+  <h3 class="mt-4 mb-2">{{ box_folders.eboard.label }}</h3>
+  {% include 'lab/the-record/_box_folder.html' with folder=box_folders.eboard %}
+  {% include 'lab/the-record/_source.html' with s=sources.file %}
+</section>
+{% endif %}
+{% endblock %}

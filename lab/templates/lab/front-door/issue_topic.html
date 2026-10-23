@@ -1,0 +1,70 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+<h1>{{ topic.question }}</h1>
+
+<div class="box prose">
+  <h2 class="m0" style="margin-top:0">Who handles this</h2>
+  <p class="m0"><strong>{{ topic.owner_label }}</strong>{% if topic.route_draft %} {% include 'lab/front-door/_draft.html' with why=topic.route_draft %}{% endif %}</p>
+  <p class="m0">Body: {{ topic.owner_body }}</p>
+  <p class="m0">{% if chair %}Chair: {{ chair }}{% else %}Chair: Vacant{% endif %}</p>
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  {% if topic.fact %}<p class="m0">{{ topic.fact.text }}</p>{% else %}<p class="m0 fd-sm fd-muted">Committee remits come from the Senate's own rules.</p>{% endif %}
+</div>
+
+<h2>What student government can do</h2>
+<div class="prose">
+  {% if topic.fact %}
+    <p>{{ topic.fact.text }}</p>
+    {% include 'lab/front-door/_cite.html' with art=topic.fact.cite %}
+  {% else %}
+    <p>{{ topic.can_do }} {% if topic.can_do_draft %}{% include 'lab/front-door/_draft.html' with why=topic.can_do_draft %}{% else %}{% include 'lab/front-door/_draft.html' with why="Senate bylaws or rules" %}{% endif %}</p>
+  {% endif %}
+</div>
+
+{% if topic.slug != "website" %}
+  <h2>If nothing changes</h2>
+  <div class="prose">
+    <p>Students can make the Senate hold a binding student vote on almost any question with a petition signed by 10% of Union members.</p>
+    <p><a class="tap" href="{{ referendum_url }}">How petitions work</a></p>
+    {% include 'lab/front-door/_cite.html' with art="Art. XII §1" %}
+  </div>
+{% endif %}
+
+{% if topic.outside_sg %}
+  <h2>Outside student government</h2>
+  <p class="prose">{{ topic.outside_sg }}</p>
+{% endif %}
+
+<h2>How to raise it</h2>
+{% if topic.slug == "rights" %}
+  <p class="prose">The Judicial Board hears these cases. The way to file has not been published yet.</p>
+  <p><a class="tap" href="{{ judicial_url }}">How to bring a case to the Judicial Board</a></p>
+{% else %}
+  <ol class="num prose">
+    <li>
+      <strong>Email {% if topic.committee %}the committee{% else %}the office{% endif %}.</strong>
+      {% if email.href %}
+        <a href="{{ email.href }}">{{ email.text }}</a>
+        {% if email.kind == "office" %}<span class="fd-sm fd-muted">This {% if topic.committee %}committee{% else %}office{% endif %} doesn't have its own email address yet.</span>{% endif %}
+      {% else %}
+        {{ email.text }} {% include 'lab/front-door/_draft.html' with why="Site owner" %}
+        <br><span class="fd-sm fd-muted">This {% if topic.committee %}committee{% else %}office{% endif %} doesn't have its own email address yet.</span>
+      {% endif %}
+    </li>
+    {% if topic_meeting %}
+      <li><strong>Or speak at the next {{ topic_meeting.body_name }} meeting.</strong>
+        {% if topic_meeting.speak_phrase %}Anyone can speak during the Invitation to Speak {{ topic_meeting.speak_phrase }} of the meeting.{% endif %}
+        <a href="{{ topic_meeting.url }}">See the {{ topic_meeting.body_name }} meeting</a> or <a href="{{ meetings_url }}">all meetings</a>.</li>
+    {% endif %}
+    {% if site.discord_url %}<li><strong>Or post in the Union Discord.</strong> <a href="{{ site.discord_url }}">Open the Discord</a>.</li>{% endif %}
+  </ol>
+{% endif %}
+
+<h2>What happens to it</h2>
+<p class="fd-sm fd-muted prose">Your email goes to the {% if topic.committee %}committee{% else %}office{% endif %}. Senate committees may log issues in the Senate's Notion 'Issues' database; only items they mark Public would ever appear on this site, read-only. The Executive Board, the Councils and the Judicial Board don't publish an issue tracker; what they decide appears in their minutes. Your message itself is never published. {% include 'lab/front-door/_draft.html' with why="Site owner" %}</p>
+
+<p class="prose"><strong>{{ safety }}</strong> {% include 'lab/front-door/_draft.html' with why="Site owner" %}</p>
+
+<p><a class="tap" href="{{ index_url }}">Back to all topics</a></p>
+{% include 'lab/front-door/_source.html' with s=sources.wagtail %}
+{% endblock %}

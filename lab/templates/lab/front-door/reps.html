@@ -1,0 +1,115 @@
+{% extends "lab/front-door/base.html" %}
+{% block content %}
+{% if not key %}
+  <h1>Who represents you</h1>
+  <p class="prose">Pick your group to see your senators and class rep.</p>
+  <ul class="plain grid-reps">
+    {% for p in pills %}
+      <li><a class="pill-link" style="width:100%;border-radius:.5rem;min-height:64px;font-size:1.125rem" href="{{ p.url }}">{{ p.label }}</a></li>
+    {% endfor %}
+  </ul>
+  {% include 'lab/front-door/_source.html' with s=sources.roster %}
+  <p class="fd-sm fd-muted">{{ seat_source_note }}</p>
+{% else %}
+  <h1>{{ title }}</h1>
+  <p class="fd-sm"><a class="tap" href="{{ index_url }}">Pick a different group</a></p>
+
+  {% if fallback %}
+    <div class="box prose">
+      <p><strong>Your class has 4 Senate seats.</strong> First-year senators and the first-year Class Council are elected in the fall semester. The latest roster we have (30 Jul 2026) is from before that election.</p>
+      {% include 'lab/front-door/_cite.html' with art="Art. VII §1; Art. VIII §3" %}
+      <p class="m0"><a class="tap" href="{{ take_part_run }}">How to run</a></p>
+    </div>
+    <h2>Until then, these people represent everyone</h2>
+    <p class="prose">Until then, these people represent everyone:</p>
+    {% include 'lab/front-door/_everyone.html' %}
+  {% elif senate_cards %}
+    <h2>Your Student Senate seats</h2>
+    <p class="prose m0">{{ senate_intro }}</p>
+    {% include 'lab/front-door/_cite.html' with art="Art. VII §1" %}
+    <ul class="plain stack">
+      {% for c in senate_cards %}{% include 'lab/front-door/_seat_card.html' %}{% endfor %}
+    </ul>
+    {% include 'lab/front-door/_card_group_footer.html' %}
+    {% if show_reconciliation %}
+      <div class="box prose">
+        <p class="m0"><strong>Why two groups?</strong> {{ reconciliation.text }}</p>
+        {% include 'lab/front-door/_cite.html' with art=reconciliation.cite %}
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if eb_cards %}
+    <h2>Your Executive Board class representative</h2>
+    <ul class="plain stack">
+      {% for c in eb_cards %}{% include 'lab/front-door/_seat_card.html' %}{% endfor %}
+    </ul>
+    <p class="prose m0">Appointed by the President of the Union and approved by 2/3 of the Senate, not elected.</p>
+    {% include 'lab/front-door/_cite.html' with art=eb_note_cite %}
+    {% include 'lab/front-door/_card_group_footer.html' %}
+  {% endif %}
+
+  {% if kind == "clubs" %}
+    <h2>Club and organization representatives</h2>
+    <ul class="plain stack">
+      {% for c in club_cards %}{% include 'lab/front-door/_seat_card.html' %}{% endfor %}
+    </ul>
+    <p class="prose m0">Club and organisation reps are appointed by the President of the Union with 2/3 Senate approval. Clubs don't elect them.</p>
+    {% include 'lab/front-door/_cite.html' with art="Art. VII §2" %}
+    <h2>Vice President for Club Relations</h2>
+    <ul class="plain stack">
+      {% for c in vp_cards %}{% include 'lab/front-door/_seat_card.html' %}{% endfor %}
+    </ul>
+    <p><a class="tap" href="{{ funding_url }}">Get money for your club</a></p>
+    {% include 'lab/front-door/_card_group_footer.html' %}
+  {% endif %}
+
+  {% if class_council %}
+    <h2>Your Class Council</h2>
+    <div class="box prose">
+      <p>Your class also elects a Class Council: a Class President, a Vice President, at least 8 Representatives and your 4 Class Senators. It recommends how your class dues are spent and appoints replacements when a Class Senator seat falls vacant.</p>
+      {% include 'lab/front-door/_cite.html' with art="Art. VII §5; Art. XI §6" %}
+      <p class="m0">Roster not listed yet.</p>
+    </div>
+  {% endif %}
+
+  {% if kind == "graduate" %}
+    <h2>Your Graduate Council</h2>
+    <div class="box prose">
+      <p>The Graduate Council is the advocacy body for graduate students. Its voting members are the 7 Graduate Senators plus at least 5 at-large members, and it elects its own President from among its members. It controls graduate class dues.</p>
+      {% include 'lab/front-door/_cite.html' with art="Art. VII §4; Amendment V" %}
+      {% if grad_meeting %}<p>Graduate Council report at {{ grad_meeting.title }}: {% if grad_report %}{{ grad_report }}{% else %}<em>Vacant</em>{% endif %}.</p>
+      {% include 'lab/front-door/_source.html' with s=sources.meeting_senate %}{% endif %}
+      <p>Executive Board Graduate Council representative: {% if grad_eb_rep %}{{ grad_eb_rep }}{% else %}<em>Vacant</em>{% endif %}.</p>
+      {% include 'lab/front-door/_source.html' with s=sources.roster %}
+      <p class="m0"><a class="tap" href="{{ grad_topic_url }}">Raise a graduate issue</a></p>
+    </div>
+  {% endif %}
+
+  {% if not fallback %}
+    <h2>Also representing everyone</h2>
+    {% include 'lab/front-door/_everyone.html' %}
+  {% endif %}
+
+  <h2>Your say over these seats</h2>
+  <ul class="bul prose">
+    {% if has_elected %}
+      <li>Recall a senator: a petition from 20% of the constituency, or a Senate majority, starts a removal election. 2/3 of those voting removes them, if at least 20% vote.
+        {% if say_draft %}{% include 'lab/front-door/_draft.html' with why=say_draft %}{% endif %}
+        {% include 'lab/front-door/_cite.html' with art="Art. X §2" %}</li>
+    {% endif %}
+    {% if has_vacant %}
+      <li>If a vacant seat is filled by appointment, 20% of the constituency can force an election by petition within two weeks of the announcement.
+        {% if say_draft %}{% include 'lab/front-door/_draft.html' with why=say_draft %}{% endif %}
+        {% include 'lab/front-door/_cite.html' with art="Art. XI §5" %}</li>
+    {% endif %}
+    <li>Grand Marshal or President of the Union: removable by a petition from 50% of all students, or by 2/3 in a removal election where at least 20% vote.
+      {% include 'lab/front-door/_cite.html' with art="Art. X §1" %}</li>
+  </ul>
+  <p><a class="tap" href="{{ take_part_url }}">All the ways students can act</a></p>
+
+  {% if roster_db_count %}
+    <p class="fd-sm fd-muted">The site database holds {{ roster_db_count }} role assignment{{ roster_db_count|pluralize }}, but they have no seat or term fields yet, so this prototype still lays seats out from its seed data.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

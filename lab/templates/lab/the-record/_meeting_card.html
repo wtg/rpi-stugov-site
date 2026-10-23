@@ -1,0 +1,18 @@
+<article class="border border-line rounded bg-white p-4 h-full flex flex-col">
+  <h3 class="text-lg font-bold">{{ m.body_name }}{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}</h3>
+  <p class="font-mono text-sm mt-1">{{ m.ref }}</p>
+  <p class="mt-2"><time datetime="{{ m.starts_iso }}">{{ m.when_long }}</time>, {{ m.time_label }}</p>
+  <p>{{ m.location }}</p>
+  <p class="mt-2 font-semibold">
+    {% if m.agenda_state == 'linked' %}<a href="{{ m.agenda_url }}">Agenda posted</a>{% if m.sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}
+    {% elif m.agenda_state == 'host' %}Agenda posted (link to {{ m.agenda_host }})
+    {% elif m.past %}No agenda link on the meeting record yet
+    {% else %}Agenda not posted yet{% endif %}
+  </p>
+  <p class="mt-3 flex flex-wrap gap-x-5 gap-y-1">
+    <a href="{{ m.speak_url }}" class="inline-block py-1">Speak at this meeting</a>
+    <a href="{{ m.ics }}" download="{{ m.body }}-{{ m.term_slug }}-{{ m.number }}.ics" class="inline-block py-1">Add to calendar</a>
+    {% if m.detail_url %}<a href="{{ m.detail_url }}" class="inline-block py-1">Meeting details</a>{% endif %}
+  </p>
+  <div class="mt-auto pt-2">{% include 'lab/the-record/_source.html' with s=src|default:m.record_source %}</div>
+</article>

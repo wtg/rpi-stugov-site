@@ -1,0 +1,7 @@
+<article class="card flex h-full flex-col gap-2">
+  <p class="flex flex-wrap items-center gap-2">{% include "lab/your-reps/_chip.html" %} {% include "lab/your-reps/_sample.html" %}</p>
+  <h3 class="text-lg font-bold leading-snug">{{ i.title }}</h3>
+  <p class="text-sm text-muted">Owner: {{ i.owner_seat }}</p>
+  <p class="text-sm text-muted">Last update: <time datetime="{{ i.last_update|date:'Y-m-d' }}">{{ i.last_update|date:"j M Y" }}</time></p>
+  {% if i.stale %}<p class="text-sm font-semibold text-muted">{{ i.stale_label }}</p>{% endif %}
+</article>

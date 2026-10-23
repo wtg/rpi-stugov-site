@@ -1,0 +1,37 @@
+{# Membership snapshot table. snap = data.snapshot_with_totals(body) #}
+<table class="data-table">
+  <caption>{{ snap.title }} on {{ snap.roster_label }}</caption>
+  <thead><tr>
+    <th scope="col">Group</th><th scope="col">Seats</th><th scope="col">Filled</th><th scope="col">Vacant</th>
+    {% if snap.body == 'senate' %}<th scope="col">To be elected this fall</th>{% endif %}
+  </tr></thead>
+  <tbody>
+    {% for g in snap.groups %}
+    <tr>
+      <th scope="row" data-label="Group">{{ g.label }}</th>
+      <td data-label="Seats">{{ g.seats }}</td>
+      <td data-label="Filled">{{ g.filled }}{% if g.note and not g.vacant %} ({{ g.note }}){% endif %}</td>
+      <td data-label="Vacant">{{ g.vacant }}{% if g.note and g.vacant %} ({{ g.note|cut:"Vacant: " }}){% endif %}</td>
+      {% if snap.body == 'senate' %}<td data-label="To be elected this fall">{{ g.elect_fall }}</td>{% endif %}
+    </tr>
+    {% endfor %}
+    <tr class="font-bold">
+      <th scope="row" data-label="Group">Total</th>
+      <td data-label="Seats">{{ snap.totals.seats }}</td>
+      <td data-label="Filled">{{ snap.totals.filled }}</td>
+      <td data-label="Vacant">{{ snap.totals.vacant }}</td>
+      {% if snap.body == 'senate' %}<td data-label="To be elected this fall">{{ snap.totals.elect_fall }}</td>{% endif %}
+    </tr>
+  </tbody>
+</table>
+<p class="text-sm mt-2">{{ snap.presiding }} {% include 'lab/the-record/_cite.html' with art=snap.presiding_cite %}</p>
+{% for n in snap.notes %}
+  <p class="text-sm mt-2">{{ n.text }}{% if n.cite %} {% include 'lab/the-record/_cite.html' with art=n.cite %}{% endif %}</p>
+{% endfor %}
+{% if snap.officers %}
+  <h4 class="font-semibold mt-3">Officers {% include 'lab/the-record/_draft.html' with why=snap.officers_draft %}</h4>
+  <ul class="list-disc pl-5 text-sm">
+    {% for role, who in snap.officers %}<li>{{ role }}: {{ who }}</li>{% endfor %}
+  </ul>
+{% endif %}
+<p class="text-sm mt-2">{{ snap.nonvoting }}{% if snap.nonvoting_cite %} {% include 'lab/the-record/_cite.html' with art=snap.nonvoting_cite %}{% endif %}{% if snap.nonvoting_draft %} {% include 'lab/the-record/_draft.html' with why=snap.nonvoting_draft %}{% endif %}</p>

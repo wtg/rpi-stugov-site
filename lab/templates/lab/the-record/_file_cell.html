@@ -1,0 +1,4 @@
+{# state: linked | missing. url, sample, days, approved, past. #}
+{% if state == 'linked' %}<a href="{{ url }}">Posted (PDF in Box)</a>{% if sample %} {% include 'lab/the-record/_sample.html' %}{% endif %}{% if approved %}<br><span class="text-sm text-muted">Approved <time datetime="{{ approved_iso|date:'Y-m-d' }}">{{ approved }}</time></span>{% endif %}
+{% elif past %}Not posted ({{ days }} days)
+{% else %}Not posted yet{% endif %}

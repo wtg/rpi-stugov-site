@@ -1,0 +1,10 @@
+<ul class="plain stack">
+  {% for d in decisions %}
+    <li class="card">
+      <p class="m0"><span class="chip">{{ d.status_label }}</span>{% if d.sample %} {% include 'lab/front-door/_sample.html' %}{% endif %}</p>
+      <p class="m0"><strong>{{ d.summary }}</strong>{% if d.detail %}<br><span class="fd-muted">{{ d.detail }}</span>{% endif %}</p>
+      <p class="fd-sm fd-muted m0">{{ d.body }} · <time datetime="{{ d.date|date:'Y-m-d' }}">{{ d.date_short }}</time></p>
+      {% if d.motion_file %}<p class="m0"><a class="tap" href="{{ d.motion_file }}" rel="nofollow">Motion text (PDF in Box)</a></p>{% endif %}
+    </li>
+  {% endfor %}
+</ul>

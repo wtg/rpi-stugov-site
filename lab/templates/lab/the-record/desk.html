@@ -1,0 +1,290 @@
+{% extends 'lab/the-record/base.html' %}
+{% block title %}Officer desk{% endblock %}
+{% block content %}
+<div role="note" class="border-2 border-dashed border-muted bg-rowalt p-3 mb-4 text-sm font-semibold">Mock for testing only. Nothing you enter is saved, published, or emailed. Nothing here is connected to Notion or Box.</div>
+
+<h1>Officer desk</h1>
+
+<nav aria-label="Where this body keeps meeting records" class="mt-3">
+  <ul class="flex flex-wrap gap-3 list-none p-0">
+    <li><a href="?path=notion" class="btn {% if path != 'notion' %}btn-secondary{% endif %}"{% if path == 'notion' %} aria-current="page"{% endif %}>Senate (Notion)</a></li>
+    <li><a href="?path=site" class="btn {% if path != 'site' %}btn-secondary{% endif %}"{% if path == 'site' %} aria-current="page"{% endif %}>Entered on this site (E-Board, example)</a></li>
+    <li><a href="?path=folder" class="btn {% if path != 'folder' %}btn-secondary{% endif %}"{% if path == 'folder' %} aria-current="page"{% endif %}>Folder only (Graduate Council, Undergraduate Council, Judicial Board)</a></li>
+  </ul>
+  <p class="text-sm text-muted mt-1">Each body chooses. A body's meetings live in one place, never two.</p>
+</nav>
+
+<section aria-labelledby="jobs-h">
+  <h2 id="jobs-h">Your jobs</h2>
+  <p class="max-w-3xl">What the site can't show students correctly until someone fixes it at the source.</p>
+  {% include 'lab/the-record/_problems_table.html' with rows=jobs caption='Jobs to fix, most urgent first' full=False %}
+  {% if more_jobs %}<p class="text-sm text-muted">{{ more_jobs }} more on the health page.</p>{% endif %}
+  <p class="mt-2"><a href="{% url 'lab:the_record:health' %}">Full health page &rarr;</a></p>
+  <p class="mt-1 text-sm">{{ sync_line }}</p>
+</section>
+
+<section aria-labelledby="publish-h">
+{% if path == 'folder' %}
+  <h2 id="publish-h">Publish as files only</h2>
+  <p class="max-w-3xl">For a body that keeps no meeting records on this site: the Graduate Council, Undergraduate Council and Judicial Board (examples). There is no form. The body's files are the record.</p>
+  <ol class="list-decimal pl-6 mt-3 space-y-2 max-w-3xl">
+    <li>Export the Word document as a PDF with accessibility tags (File, Save As, PDF; never Print to PDF).</li>
+    <li>Save it in the body's Box folder with the convention name, for example <span class="font-mono break-words">2026-10-12 GC 2026-27 #03 Minutes.pdf</span>.</li>
+    <li>Share &rarr; set the link to 'People with the link'.</li>
+    <li>Once a month, confirm on this site that the folder is complete.
+      <div class="flex items-start gap-2 mt-1">
+        <input type="checkbox" id="records-complete" disabled aria-describedby="records-complete-note">
+        <div><label for="records-complete" class="font-semibold">Records are complete up to today</label> {% include 'lab/the-record/_sample.html' %}
+          <p id="records-complete-note" class="text-sm text-muted">Disabled in this prototype. It would save the date, and the health page would show it as "records last confirmed".</p></div>
+      </div>
+    </li>
+  </ol>
+
+  <h3 class="mt-6">What students see</h3>
+  {% with gc=folder_bodies.0 %}
+  <div class="mt-2">{% include 'lab/the-record/_box_folder.html' with folder=gc.folder_obj %}</div>
+  <p class="mt-2">The {{ gc.name }} publishes its records as files. It doesn't list meetings on this site.</p>
+  {% endwith %}
+  {% include 'lab/the-record/_source.html' with s=sources.folder_only %}
+
+  <h3 class="mt-6">What you give up</h3>
+  <ul class="list-disc pl-5 max-w-3xl">
+    <li>No meeting pages</li>
+    <li>No "next meeting"</li>
+    <li>No calendar</li>
+    <li>No automatic deadline checks</li>
+  </ul>
+{% else %}
+  {% if path == 'notion' %}
+    <h2 id="publish-h">Publish a meeting: the two-minute test</h2>
+    <p class="max-w-3xl">The Senate publishes a meeting with one Notion row and pasted links. Time it with the real agenda PDF, starting before you open Box.</p>
+  {% else %}
+    <h2 id="publish-h">Post the next meeting (entered on this site)</h2>
+    <div class="border-2 border-yellow-800 bg-yellow-100 p-3 max-w-3xl" role="note">
+      <p class="font-semibold">For a body that chose to list its meetings on this site, shown here for the Executive Board as an example. The Senate never uses this form: its meetings come from its Notion. This site is where this body's meeting record lives, so it is typed here once.</p>
+    </div>
+  {% endif %}
+
+  <p class="mt-3"><button type="button" id="timer-start" class="btn btn-secondary">Start the timer</button>
+    <span class="text-sm text-muted">The timer also starts when you first click into the form. Without JavaScript, time isn't measured.</span></p>
+
+  <ol class="list-decimal pl-6 mt-3 space-y-2 max-w-3xl">
+    <li>Export the Word agenda as a PDF with accessibility tags (File, Save As, PDF; never Print to PDF).
+      In Box, save the agenda in {% if path == 'notion' %}<span class="font-mono">Public Records/Senate/2026-27 Senate 57/</span> as <span class="font-mono">2026-10-26 Senate 57 #16 Agenda.pdf</span>{% else %}<span class="font-mono">Public Records/Executive Board/2026-27 EBoard FY27/</span> as <span class="font-mono">{{ eboard_next_name }}</span>{% endif %}.
+      Replacing a file? Use Upload New Version, not a second upload: the link stays the same.
+      <details class="mt-1">
+        <summary class="cursor-pointer py-1 text-sm font-semibold">Naming rule</summary>
+        <div class="text-sm pl-2">
+          <p>Pattern: <span class="font-mono break-words">{{ name_pattern }}</span>, inside <span class="font-mono">Public Records/&lt;Body&gt;/&lt;YYYY-YY Body Term&gt;/</span>. Body codes: {% for c in body_codes %}<span class="font-mono">{{ c }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+          <p class="mt-1">Today's name &rarr; convention:</p>
+          <ul class="list-disc pl-5">
+            {% for old, new in renames %}<li><span class="font-mono break-words">{{ old }}</span> &rarr; <span class="font-mono break-words">{{ new }}</span></li>{% endfor %}
+          </ul>
+          <p class="mt-1 text-muted">The site can't check filenames, because it has no Box API. The convention helps people browsing the folder embed.</p>
+        </div>
+      </details>
+    </li>
+    <li>Share &rarr; set the link to 'People with the link' &rarr; copy it. If it's set to 'People in your company', students hit an RPI login.</li>
+    {% if path == 'notion' %}
+      <li>In Notion's Meetings database, open the existing Senate 57 #16 row, paste the link into Agenda, and check Public is ticked. The row for the next meeting is already there, so don't add a second one. (Only if no row exists for the meeting: duplicate the last meeting, then change the number, date and place.)</li>
+      <li>It appears on this site within 15 minutes, or sooner, because Notion pings the site when a row changes.</li>
+    {% else %}
+      <li>Fill in this form and paste the link. If the meeting already exists on this site, edit it instead of adding a second one.</li>
+      <li>It appears immediately.</li>
+    {% endif %}
+  </ol>
+  <p class="mt-3 flex flex-wrap gap-3">
+    <a href="{{ mock_box }}" class="btn btn-secondary" rel="nofollow">{% if path == 'notion' %}Open the Senate Box folder{% else %}Open the E-Board Box folder{% endif %}</a> <span class="text-xs self-center">(mock link)</span>
+    {% if path == 'notion' %}<a href="{{ mock_notion }}" class="btn btn-secondary" rel="nofollow">Open Notion Meetings</a> <span class="text-xs self-center">(mock link)</span>{% endif %}
+  </p>
+
+  {% if error_list %}
+  <div role="alert" id="error-summary" tabindex="-1" class="border-2 border-red-800 bg-red-50 p-3 mt-4 max-w-3xl">
+    <h3 class="text-red-800">There is a problem</h3>
+    <ul class="list-disc pl-5">
+      {% for e in error_list %}<li>{% if e.id %}<a href="#{{ e.id }}">{{ e.label }}: {{ e.messages.0 }}</a>{% else %}{{ e.messages.0 }}{% endif %}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="?path={{ path }}" id="meeting-form" data-focus="{{ result_anchor }}" novalidate class="mt-4 max-w-3xl">
+    {% csrf_token %}
+    <input type="hidden" name="path" value="{{ path }}">
+    <input type="hidden" name="elapsed" id="elapsed" value="">
+    <div id="standin" {% if path == 'notion' %}class="notion-panel"{% else %}class="border border-line rounded p-4 bg-white"{% endif %}>
+      {% if path == 'notion' %}
+        <h3>Stand-in for Notion</h3>
+        <p class="font-bold mt-1">This is not a website form. On the real site this panel doesn't exist: you'd do this in Notion. It's here so the test can run without a Notion workspace.</p>
+        <p class="font-mono text-sm mt-2">Meetings</p>
+      {% else %}
+        <h3>Meeting details</h3>
+      {% endif %}
+      <div class="mt-3">
+        {% include 'lab/the-record/_field.html' with f=fields.body hint=hints.body %}
+        {% include 'lab/the-record/_field.html' with f=fields.term hint=hints.term %}
+        {% include 'lab/the-record/_field.html' with f=fields.number hint=hints.number %}
+        {% include 'lab/the-record/_field.html' with f=fields.date hint=hints.date %}
+        {% include 'lab/the-record/_field.html' with f=fields.time hint=hints.time %}
+        {% include 'lab/the-record/_field.html' with f=fields.location hint=hints.location %}
+        {% include 'lab/the-record/_field.html' with f=fields.agenda hint=hints.agenda %}
+        {% if path == 'notion' %}
+          {% include 'lab/the-record/_field.html' with f=fields.public hint=hints.public %}
+        {% endif %}
+      </div>
+    </div>
+    <p class="mt-4"><button type="submit" class="btn">{% if path == 'notion' %}Sync now (simulated){% else %}Show what the site would publish{% endif %}</button></p>
+    {% if path == 'notion' %}<p class="text-sm text-muted mt-2">If the Senate already has a Notion workspace, do step 3 there with a stopwatch, and use this panel only to see what the site would show.</p>{% endif %}
+  </form>
+
+  <div id="result" aria-live="polite" class="mt-6">
+  {% if result %}
+    <h3 class="text-xl" id="result-heading" tabindex="-1">What the site shows {% if path == 'notion' %}after the next sync (simulated){% else %}once this is saved (simulated){% endif %}</h3>
+    {% if not result.public %}
+      <p class="mt-2 border border-line rounded p-3 bg-rowalt max-w-3xl">Not shown on the site: Public is unticked in Notion. Tick it and sync again.</p>
+    {% else %}
+      <div class="mt-2 max-w-xl">{% include 'lab/the-record/_meeting_card.html' with m=result.card src=result.source %}</div>
+    {% endif %}
+    <h4 class="font-semibold mt-4">Checks the health page would run on this row</h4>
+    <ul class="mt-1 space-y-2 list-none p-0">
+      {% for c in result.checks %}
+        <li class="sev-line sev-{{ c.severity }}">{{ c.text }}</li>
+      {% endfor %}
+    </ul>
+    <p class="mt-3 font-semibold">{{ result.time_text }}</p>
+  {% endif %}
+  </div>
+{% endif %}
+</section>
+
+<section aria-labelledby="outcomes-h">
+  <h2 id="outcomes-h">Recording outcomes</h2>
+  <p class="max-w-3xl">Senate: each motion is a row in the Senate's Notion Motions table: a short label, the meeting, its status, and a link to the motion's Word or PDF file in Box. The secretary sets the status once, at the vote. The motion's text stays in the file. Build the minutes' list of motions from the Notion view rather than typing outcomes twice.</p>
+  <p class="max-w-3xl mt-2">Every other body: outcomes are in the body's minutes. This site links the minutes and never retypes them.</p>
+  <table class="data-table mt-3">
+    <caption>What the Senate's Motions table in Notion would look like {% include 'lab/the-record/_sample.html' %}</caption>
+    <thead><tr><th scope="col">Motion</th><th scope="col">Meeting</th><th scope="col">Status</th><th scope="col">Motion text</th><th scope="col">Public</th></tr></thead>
+    <tbody>
+      {% for r in motions %}
+      <tr>
+        <th scope="row" data-label="Motion" class="font-normal">{{ r.motion }}</th>
+        <td data-label="Meeting">{{ r.meeting }}</td>
+        <td data-label="Status">{{ r.status }}</td>
+        <td data-label="Motion text" class="font-mono text-sm break-words">{{ r.file }}</td>
+        <td data-label="Public"><span aria-hidden="true">{{ r.public }}</span><span class="sr-only">Ticked</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="rollover-h">
+  <h2 id="rollover-h">Term rollover, done on this site</h2>
+  <ol class="list-decimal pl-6 space-y-1 max-w-3xl">
+    {% for step in rollover %}<li>{{ step }}</li>{% endfor %}
+  </ol>
+  <p class="mt-2">Owner: Web Technologies Group (WTG) chair {% include 'lab/the-record/_draft.html' with why='Site owner' %}</p>
+</section>
+
+<section id="how-this-site-works" aria-labelledby="how-h" class="scroll-mt-4">
+  <h2 id="how-h">How this site works</h2>
+  <p class="max-w-3xl">This site keeps one copy of each fact. Files live in Box. Each body keeps its meeting records its own way: the Senate in its Notion, the Executive Board on this site, other bodies in their Box folders. This site keeps the roster for every body, and the health page checks every body against the Public Records Standard.</p>
+
+  <table class="data-table mt-3">
+    <caption>Each body's records {% include 'lab/the-record/_draft.html' with why='Site owner' %}</caption>
+    <thead><tr><th scope="col">Body</th><th scope="col">Meeting records</th><th scope="col">Agendas and minutes</th><th scope="col">Decisions</th><th scope="col">Roster</th><th scope="col">Issues</th></tr></thead>
+    <tbody>
+      {% for r in records_by_body %}
+      <tr>
+        <th scope="row" data-label="Body" class="font-normal">{{ r.body }}{% if r.example %} <span class="text-sm text-muted">(example)</span>{% endif %}</th>
+        <td data-label="Meeting records">{{ r.meetings }}</td>
+        <td data-label="Agendas and minutes">{{ r.files }}</td>
+        <td data-label="Decisions">{{ r.decisions }}</td>
+        <td data-label="Roster">{{ r.roster }}</td>
+        <td data-label="Issues">{{ r.issues }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="data-table mt-4">
+    <caption>Shared by every body, and who edits it {% include 'lab/the-record/_draft.html' with why='Site owner' %}</caption>
+    <thead><tr><th scope="col">What</th><th scope="col">Lives in</th><th scope="col">Who edits</th><th scope="col">How this site gets it</th></tr></thead>
+    <tbody>
+      {% for r in shared_where %}
+      <tr>
+        <th scope="row" data-label="What" class="font-normal">{% if r.wagtail %}<span class="pill" style="border-color:#111827;color:#111827">Written on this site</span> {% endif %}{{ r.what }}</th>
+        <td data-label="Lives in">{{ r.where }}</td>
+        <td data-label="Who edits">{{ r.who }}</td>
+        <td data-label="How this site gets it">{{ r.how }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3 class="mt-6">The Public Records Standard {% include 'lab/the-record/_draft.html' with why='Site owner' %}</h3>
+  <table class="data-table mt-2">
+    <caption class="sr-only">The Public Records Standard</caption>
+    <thead><tr><th scope="col">Rule</th><th scope="col">How the site checks it</th></tr></thead>
+    <tbody>
+      {% for r in records_standard %}
+      <tr>
+        <th scope="row" data-label="Rule" class="font-normal">{{ r.rule }}</th>
+        <td data-label="How the site checks it">{{ r.check }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="mt-2 max-w-3xl">{{ records_standard_jboard.text }} {% include 'lab/the-record/_draft.html' with why=records_standard_jboard.draft %}</p>
+
+  <h3 class="mt-6">Never</h3>
+  <ul class="list-disc pl-5 max-w-3xl">
+    {% for n in never %}<li>{{ n }}</li>{% endfor %}
+  </ul>
+  <h3 class="mt-4">Rules for officers</h3>
+  <ul class="list-disc pl-5 max-w-3xl">
+    {% for r in officer_rules %}<li>{{ r }}</li>{% endfor %}
+  </ul>
+  {% include 'lab/the-record/_source.html' with s=sources.wagtail %}
+  {% include 'lab/the-record/_source.html' with s=sources.roster %}
+</section>
+
+<script>
+(function () {
+  var form = document.getElementById('meeting-form');
+  if (!form) return;
+  // After a submit, move focus to the error summary or the result so keyboard
+  // and screen-reader users land on it instead of below it.
+  var target = form.getAttribute('data-focus');
+  if (target) {
+    var el = document.getElementById(target);
+    if (el) el.focus();
+  }
+  var startBtn = document.getElementById('timer-start');
+  var elapsed = document.getElementById('elapsed');
+  var panel = document.getElementById('standin');
+  var t0 = null;
+  function start() {
+    if (t0) return;
+    t0 = Date.now();
+    startBtn.textContent = 'Timer running. It stops when you submit.';
+  }
+  startBtn.addEventListener('click', start);
+  panel.addEventListener('focusin', start);
+  form.addEventListener('submit', function () {
+    if (t0) elapsed.value = Math.max(1, Math.round((Date.now() - t0) / 1000));
+  });
+
+  var body = document.getElementById('id_body');
+  var term = document.getElementById('id_term');
+  var number = document.getElementById('id_number');
+  var nextNumbers = {{ next_numbers_json|safe }};
+  var terms = {senate: '57', eboard: 'fy27'};
+  if (body && term) {
+    body.addEventListener('change', function () {
+      term.value = terms[body.value] || term.value;
+      if (number && nextNumbers[body.value]) number.value = nextNumbers[body.value];
+    });
+  }
+})();
+</script>
+{% endblock %}
