@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "blog",
     "home",
     "search",
+    "rep_finder",
     # Wagtail contrib modules — optional Wagtail features enabled as needed.
     # "forms" powers the complaint form builder. "settings" provides the
     # SiteSettings singleton. "routable_page" lets EventIndexPage serve a
