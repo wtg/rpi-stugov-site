@@ -17,24 +17,22 @@ Key design decisions:
     data like the person's role on that particular page.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 
 from datetime import date
 
-import re
-
-from django import forms
+from django.apps import apps
 from django.db import models
 
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
-from wagtail.admin.forms.models import WagtailAdminModelForm
-from wagtail.admin.forms.pages import WagtailAdminPageForm
-from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel, PageChooserPanel
 from wagtail.fields import RichTextField, StreamField
 from wagtail.images import get_image_model_string
-from wagtail.models import Orderable, Page
+from wagtail.models import Page, get_page_models
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
@@ -76,6 +74,121 @@ def constituency_choices():
     """
     return class_choices() + FSL_CHOICES + [("none", "None")]
 
+class TierChoices(models.IntegerChoices):
+    PRESIDING = 0, 'Presiding Officer'
+    OFFICERS = 1, 'Officers'
+    CHAIRS = 2, 'Committee Chairs'
+    MEMBERS = 3, 'Voting Members'
+    ADVISORS = 4, 'Non-voting Members'
+
+
+# ===========================================================================
+# MIXIN: MembershipDisplay
+# ===========================================================================
+
+class MembershipDisplay:
+    """
+    Mixin for pages with tiered membership displays.
+    
+    get_tiered_placements gets a list of tier dicts for placements and, if necessary,
+    followed by a tier dict for vacancies. The returned list has the following structure:
+    [{
+        'tier_id': number, # e.g. 0, 1, ...   derived from TierChoices 
+        'placements':
+            [{
+                'member': MemberProfile,
+                'tier_name': string, # e.g. Presiding Officer, Members
+                'roles': [ string, ... ] # e.g. Secretary, Representative
+            }, ... ]
+    }, ... , {
+        'tier_id': vacancies_tier_id
+        'vacancies':
+            [{
+                'positions': number, # Number of positions available
+                'tier_name': string, # e.g. Vacancies
+                'role': string # e.g. Secretary, Representative
+            }, ... ]
+    }]
+    """
+    
+    vacancies_tier_id = 999
+    
+    def get_tiered_placements(self):
+        placements = self.role_placements.select_related('role').order_by('tier')
+        if not placements:
+            return []
+
+        role_to_tier = defaultdict(list)
+        tier_names = {}
+        configured_roles = {}
+        
+        for placement in placements:
+            tier = placement.tier
+            role_name = placement.display_name or placement.role.name
+            role_to_tier[placement.role_id].append((tier, role_name))
+            configured_roles[placement.role_id] = placement.role
+
+            if tier not in tier_names:
+                tier_names[tier] = placement.get_tier_display()
+
+        MemberRoleAssignment = apps.get_model('branches', 'MemberRoleAssignment')
+        assignments = MemberRoleAssignment.objects.filter(
+            role_id__in=role_to_tier.keys()
+        ).select_related('member', 'role')
+        tier_member_roles = defaultdict(lambda: defaultdict(set))
+        
+        role_assignments = dict(
+            MemberRoleAssignment.objects.filter(role_id__in=role_to_tier.keys())
+            .values('role_id')
+            .annotate(total=models.Count('id'))
+            .values_list('role_id', 'total')
+        )
+
+        for assignment in assignments:
+            member = assignment.member
+            for tier, role_name in role_to_tier[assignment.role_id]:
+                tier_member_roles[tier][member].add(role_name)
+
+        result = []
+        for tier in sorted(tier_member_roles.keys()):
+            member_placements = []
+            for member, role_names in tier_member_roles[tier].items():
+                member_placements.append({
+                    'member': member,
+                    'roles': list(role_names)
+                })
+
+            member_placements.sort(key=lambda p: p['roles'][0])
+            result.append({
+                'tier_id': tier,
+                'tier_name': tier_names.get(tier, f"Tier {tier}"),
+                'placements': member_placements
+            })
+
+        vacancies = []
+        for role_id, role in configured_roles.items():
+            if not role.positions:
+                continue
+
+            open_positions = role.positions - role_assignments.get(role_id, 0)
+            if open_positions > 0:
+
+                role_name = next(name for t, name in role_to_tier[role_id])
+                vacancies.append({
+                    'role': role_name,
+                    'positions': open_positions,
+                })
+
+        # Append vacancies tier if any vacancies exist
+        if vacancies:
+            result.append({
+                'tier_id': self.vacancies_tier_id,
+                'tier_name': "Vacancies",
+                'vacancies': vacancies
+            })
+
+        return result
+
 
 # ===========================================================================
 # SNIPPET: Role
@@ -96,9 +209,14 @@ class Role(index.Indexed, ClusterableModel):
     customization of committee structure.
     """
 
+    role_code = models.CharField(
+        max_length=31,
+        help_text="Unique identifier for this role.",
+        unique=True,
+    )
     name = models.CharField(
         max_length=255,
-        help_text="Displayed role text, e.g. 'Class of 2027 Representative'.",
+        help_text="Role name to be displayed on pages.",
     )
     positions = models.PositiveIntegerField(
         null=True,
@@ -113,14 +231,16 @@ class Role(index.Indexed, ClusterableModel):
     )
 
     panels = [
+        FieldPanel("role_code"),
         FieldPanel("name"),
         FieldPanel("positions"),
-	FieldPanel("constituency"),
+	    FieldPanel("constituency"),
+        InlinePanel("placements"),
     ]
 
     search_fields = [
         index.SearchField("name"),
-        index.FilterField("constituency"),
+        index.SearchField("role_code"),
     ]
 
     class Meta:
@@ -129,10 +249,54 @@ class Role(index.Indexed, ClusterableModel):
         verbose_name_plural = "Roles"
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.role_code})"
 
-    def get_display_name(self):
-        return re.sub(r'\[[^\]]*\]\s*', '', self.name)
+
+def getMembershipDisplayPages():
+    return [page_type for page_type in get_page_models() if issubclass(page_type, MembershipDisplay)]
+
+
+class RolePlacement(ClusterableModel):
+    """
+    A child model of Role that defines on which MemberListingPages and with
+    what configuration options the role is displayed.
+
+    Roles are displayed in a tiered hierarchy, and roles can appear more than
+    once on a page with different tiers and display names.
+    """
+
+    role = ParentalKey(
+        'branches.Role',
+        related_name='placements',
+        on_delete=models.CASCADE
+    )
+
+    page = models.ForeignKey(
+        'wagtailcore.Page',
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name='role_placements',
+    )
+    tier = models.IntegerField(
+        choices=TierChoices.choices,
+        default=TierChoices.MEMBERS,
+        help_text="Display tier on page."
+    )
+    display_name = models.CharField(
+        max_length=31,
+        blank=True,
+        help_text="Role name override on page."
+    )
+
+    panels = [
+        PageChooserPanel("page", page_type=getMembershipDisplayPages()),
+        FieldPanel("tier"),
+        FieldPanel("display_name"),
+    ]
+    
+    class Meta:
+        verbose_name = "Role Placement"
+        verbose_name_plural = "Role Placements"
 
 
 # ===========================================================================
@@ -159,12 +323,13 @@ class MemberProfile(index.Indexed, ClusterableModel):
     admins can search for members by name in the snippet chooser.
     """
 
+    rcs_id = models.CharField(
+        max_length=9,
+        unique=True,
+        verbose_name="RCS ID",
+    )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(
-        blank=True,
-        verbose_name="Email (RCS ID)",
-    )
     photo = models.ForeignKey(
         get_image_model_string(),
         null=True,
@@ -195,7 +360,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
             [
                 FieldPanel("first_name"),
                 FieldPanel("last_name"),
-                FieldPanel("email"),
+                FieldPanel("rcs_id"),
                 FieldPanel("photo"),
             ],
             heading="Basic Info",
@@ -216,7 +381,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
     search_fields = [
         index.SearchField("first_name"),
         index.SearchField("last_name"),
-        index.FilterField("email"),
+        index.FilterField("rcs_id"),
     ]
 
     class Meta:
@@ -225,8 +390,7 @@ class MemberProfile(index.Indexed, ClusterableModel):
         verbose_name_plural = "Member Profiles"
 
     def __str__(self):
-        email_display = self.email or "No RCS ID"
-        return f"{self.first_name} {self.last_name} ({email_display})"
+        return f"{self.last_name}, {self.first_name} ({self.rcs_id})"
 
 
 # ===========================================================================
@@ -270,155 +434,6 @@ class MemberRoleAssignment(ClusterableModel):
 
     def __str__(self):
         return f"{self.member}: {self.role}"
-
-
-# ===========================================================================
-# ABSTRACT: RoleConfig and MembershipDisplay
-# ===========================================================================
-
-class RoleConfig(Orderable, ClusterableModel):
-    """
-    Configures a member listing page to display members with a given
-    role with certain display settings.
-
-    role_display allows a role name to be overridden (e.g. calling the VGMIA
-    the RAC Chair) and hierarchy_tier determines where on the page they will
-    be placed.
-
-    Orderable enables drag-and-drop reordering in the Wagtail admin.
-    ParentalKey (instead of ForeignKey) is required for Wagtail's
-    draft/publish workflow to work correctly with InlinePanel.
-    """
-    
-    role = models.ForeignKey(
-        "branches.Role",
-        null=False,
-        blank=False,
-        on_delete=models.CASCADE,
-        related_name="+", # Don't create reverse relation
-    )
-    role_display = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Role name override, e.g. Senate Secretary -> Secretary",
-    )
-    hierarchy_tier = models.IntegerField(
-        default=0,
-        help_text="Display tier on page."
-    )
-
-    panels = [
-        FieldPanel("role"),
-        FieldPanel("role_display"),
-        FieldPanel("hierarchy_tier"),
-    ]
-    
-    class Meta:
-        abstract = True
-        ordering = ['hierarchy_tier', 'role']
-        verbose_name = "Role Config"
-
-
-class MembershipDisplay:
-    """
-    Mixin for pages with tiered membership displays.
-    
-    get_tiered_placements gets a list of tier dicts for placements and, if necessary,
-    followed by a tier dict for vacancies. The returned list has the following structure:
-    [{
-        'tier_id': number, # e.g. 0, 1
-        'tier_name': string, # e.g. Presiding Officer, Members
-        'placements':
-            [{
-                'member': MemberProfile,
-                'roles': [ string, ... ] # e.g. Secretary, Representative
-            }, ... ]
-    }, ... , {
-        'tier_id': vacancies_tier_id
-        'tier_name': string, # e.g. Vacancies
-        'vacancies':
-            [{
-                'positions': number, # Number of positions available
-                'role': string # e.g. Secretary, Representative
-            }, ... ]
-    }]
-    """
-    
-    vacancies_tier_id = 999
-    
-    def get_tiered_placements(self):
-        configs = self.role_configs.select_related('role').order_by('hierarchy_tier')
-        if not configs:
-            return []
-
-        role_to_tier = defaultdict(list)
-        tier_names = {}
-        configured_roles = {}
-        
-        for config in configs:
-            tier = config.hierarchy_tier
-            role_name = config.role_display or config.role.get_display_name()
-            role_to_tier[config.role_id].append((tier, role_name))
-            configured_roles[config.role_id] = config.role
-            
-            if tier not in tier_names:
-                tier_names[tier] = config.get_hierarchy_tier_display()
-        
-        assignments = MemberRoleAssignment.objects.filter(
-            role_id__in=role_to_tier.keys()
-        ).select_related('member', 'role')
-        tier_member_roles = defaultdict(lambda: defaultdict(set))
-        
-        role_assignments = dict(
-            MemberRoleAssignment.objects.filter(role_id__in=role_to_tier.keys())
-            .values('role_id')
-            .annotate(total=models.Count('id'))
-            .values_list('role_id', 'total')
-        )
-
-        for assignment in assignments:
-            member = assignment.member
-            for tier, role_name in role_to_tier[assignment.role_id]:
-                tier_member_roles[tier][member].add(role_name)
-
-        result = []
-        for tier in sorted(tier_member_roles.keys()):
-            placements = []
-            for member, role_names in tier_member_roles[tier].items():
-                placements.append({
-                    'member': member,
-                    'roles': list(role_names)
-                })
-            
-            result.append({
-                'tier_id': tier,
-                'tier_name': tier_names.get(tier, f"Tier {tier}"),
-                'placements': placements
-            })
-
-        vacancies = []
-        for role_id, role in configured_roles.items():
-            if not role.positions:
-                continue
-
-            open_positions = role.positions - role_assignments.get(role_id, 0)
-            if open_positions > 0:
-
-                role_name = next(name for t, name in role_to_tier[role_id])
-                vacancies.append({
-                    'role': role_name,
-                    'positions': open_positions,
-                })
-
-        # Append vacancies tier if any vacancies exist
-        if vacancies:
-            result.append({
-                'tier_id': self.vacancies_tier_id,
-                'tier_name': "Vacancies",
-                'vacancies': vacancies
-            })
-
-        return result
 
 
 # ===========================================================================
@@ -546,7 +561,6 @@ class MemberListingPage(Page, MembershipDisplay):
 
     content_panels = Page.content_panels + [
         FieldPanel("intro"),
-        InlinePanel("role_configs", heading="Role Hierarchy", classname="collapsed"),
     ]
 
     parent_page_types = ["branches.BranchPage"]
@@ -554,28 +568,6 @@ class MemberListingPage(Page, MembershipDisplay):
 
     class Meta:
         verbose_name = "Member Listing Page"
-
-
-class BranchRoleConfig(RoleConfig):
-    
-    page = ParentalKey(
-        'branches.MemberListingPage',
-        related_name='role_configs',
-        on_delete=models.CASCADE
-    )
-    
-    class TierChoices(models.IntegerChoices):
-        PRESIDING = 0, 'Presiding Officer'
-        OFFICERS = 1, 'Officers'
-        CHAIRS = 2, 'Committee Chairs'
-        MEMBERS = 3, 'Voting Members'
-        ADVISORS = 4, 'Non-voting Members'
-    
-    hierarchy_tier = models.IntegerField(
-        choices=TierChoices.choices,
-        default=TierChoices.MEMBERS,
-        help_text="Display tier on page."
-    )
 
 
 # ===========================================================================
@@ -649,70 +641,10 @@ class CommitteePage(Page, MembershipDisplay):
             ],
             heading="Meeting Info",
         ),
-        InlinePanel("role_configs", heading="Chair Role"),
-        InlinePanel("member_placements", label="Committee Members"),
     ]
 
     parent_page_types = ["branches.CommitteeIndexPage"]
     subpage_types = []
-
-    class Meta:
-        verbose_name = "Committee Page"
-    
-    def get_tiered_placements(self):
-        result = super().get_tiered_placements()
-        placements = self.member_placements.all()
-        
-        result.append({
-            'tier_id': len(result),
-            'tier_name': "Members",
-            'placements': ({
-                    'member': placement.member,
-                    'roles': [placement.committee_role]
-                } for placement in placements if placement.member)
-        })
-        return sorted(result, key=lambda tier: tier['tier_id'])
-
-
-class CommitteeRoleConfig(RoleConfig):
-    
-    page = ParentalKey(
-        'branches.CommitteePage',
-        related_name='role_configs',
-        on_delete=models.CASCADE
-    )
-    
-    class TierChoices(models.IntegerChoices):
-        CHAIR = 0, 'Chairperson'
-    
-    hierarchy_tier = models.IntegerField(
-        choices=TierChoices.choices,
-        default=TierChoices.CHAIR,
-        help_text="Display tier on page."
-    )
-
-
-class CommitteeMemberPlacement(Orderable):
-    """Through model for committee members (same pattern as BranchMemberPlacement)."""
-
-    page = ParentalKey(
-        "branches.CommitteePage",
-        related_name="member_placements",
-    )
-    member = models.ForeignKey(
-        "branches.MemberProfile",
-        on_delete=models.CASCADE,
-        related_name="+",
-    )
-    committee_role = models.CharField(
-        max_length=50,
-        default="Member",
-    )
-
-    panels = [
-        FieldPanel("member"),
-        FieldPanel("committee_role"),
-    ]
 
 
 # ===========================================================================
@@ -762,7 +694,6 @@ class ClassCouncilPage(Page, MembershipDisplay):
     content_panels = Page.content_panels + [
         FieldPanel("class_year"),
         FieldPanel("description"),
-        InlinePanel("role_configs", heading="Role Hierarchy"),
     ]
 
     parent_page_types = ["branches.ClassCouncilIndexPage"]
@@ -771,27 +702,6 @@ class ClassCouncilPage(Page, MembershipDisplay):
     class Meta:
         verbose_name = "Class Council Page"
         ordering = ["-class_year"]
-
-
-class ClassCouncilRoleConfig(RoleConfig):
-    
-    page = ParentalKey(
-        'branches.ClassCouncilPage',
-        related_name='role_configs',
-        on_delete=models.CASCADE
-    )
-    
-    class TierChoices(models.IntegerChoices):
-        PRESIDENT = 0, 'President'
-        OFFICERS = 1, 'Officers'
-        CHAIRS = 2, 'Committee Chairs'
-        MEMBERS = 3, 'Voting Members'
-    
-    hierarchy_tier = models.IntegerField(
-        choices=TierChoices.choices,
-        default=TierChoices.MEMBERS,
-        help_text="Display tier on page."
-    )
 
 
 # ===========================================================================

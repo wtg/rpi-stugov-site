@@ -121,7 +121,7 @@ class Command(BaseCommand):
                     )
                 else:
                     exists = MemberProfile.objects.filter(
-                        email__iexact=f"{rcs_id}@rpi.edu",
+                        rcs_id__iexact=rcs_id,
                     ).exists()
                     action = "update" if exists else "create"
                     self.stdout.write(
@@ -133,7 +133,7 @@ class Command(BaseCommand):
             profile_defaults = {
                 "first_name": first_name,
                 "last_name": last_name,
-                "email": f"{rcs_id}@rpi.edu",
+                "rcs_id": rcs_id,
             }
             if row.get("class_year"):
                 profile_defaults["class_year"] = row["class_year"]
@@ -150,7 +150,7 @@ class Command(BaseCommand):
                 )
             else:
                 _, created = MemberProfile.objects.update_or_create(
-                    email__iexact=f"{rcs_id}@rpi.edu",
+                    rcs_id__iexact=rcs_id,
                     defaults=profile_defaults,
                 )
             stats["created" if created else "updated"] += 1

@@ -1,5 +1,5 @@
 """
-Management command to create ClassCouncilRoleConfig models from a CSV file.
+Management command to create RolePlacement models from a CSV file.
 
 MemberRoleAssignments are global. They are the container that
 stores that a member has a given role. The referenced MemberProfiles
@@ -28,15 +28,16 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 from branches.models import (
-    ClassCouncilRoleConfig,
+    RolePlacement,
     ClassCouncilPage,
     Role,
+    TierChoices,
 )
 
 REQUIRED_COLUMNS = {"year", "role", "tier"}
 
 class Command(BaseCommand):
-    help = "Import ClassCouncilRoleConfig models from a CSV file."
+    help = "Import RolePlacement models from a CSV file."
 
     def add_arguments(self, parser):
         parser.add_argument("csv_file", type=str, help="Path to the CSV file to import.")
@@ -48,8 +49,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Remove all existing ClassCouncilRoleConfigs before importing. "
-                "If branches are specified, only the ClassCouncilRoleConfigs for that branch will be removed."
+            help="Remove all existing RolePlacement before importing. "
+                "If branches are specified, only the RolePlacement for that branch will be removed."
         )
         parser.add_argument(
             "--class",
@@ -105,7 +106,7 @@ class Command(BaseCommand):
                 classes.append(class_year)
 
         if clear and not dry_run:
-            count = ClassCouncilRoleConfig.objects.filter(page__in=[live_councils[c] for c in classes]).delete()[0]
+            count = RolePlacement.objects.filter(page__in=[live_councils[c] for c in classes]).delete()[0]
             self.stdout.write(
                 self.style.WARNING(f"Cleared {count} existing role configs.")
             )
@@ -115,7 +116,7 @@ class Command(BaseCommand):
         for i, row in enumerate(rows, start=2):  # row 1 is the header
             row = {k: (v or "").strip() for k, v in row.items()}
             year_str = row.get("year", "")
-            role_name = row.get("role", "")
+            role_code = row.get("role", "")
             tier_str = row.get("tier", "")
             title = row.get("title", "")
 
@@ -133,7 +134,7 @@ class Command(BaseCommand):
                     self.stderr.write(self.style.WARNING(f"Row {i}: Class of {year} not in selected classes, skipping."))
                     stats["skipped"] += 1
                 continue
-            if not role_name:
+            if not role_code:
                 self.stderr.write(self.style.ERROR(f"Row {i}: missing role, skipping."))
                 stats["errors"] += 1
                 continue
@@ -144,30 +145,30 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR(f"Row {i}: invalid tier {tier}, skipping."))
                 stats["errors"] += 1
                 continue
-            if tier not in [c[0] for c in ClassCouncilRoleConfig._meta.get_field('hierarchy_tier').choices]:
+            if tier not in TierChoices:
                 self.stderr.write(self.style.ERROR(f"Row {i}: invalid tier {tier}, skipping."))
                 stats["errors"] += 1
                 continue
 
             try:
-                role = Role.objects.get(name=role_name)
+                role = Role.objects.get(role_code=role_code)
             except Role.DoesNotExist:
-                self.stderr.write(self.style.ERROR(f"Row {i}: unable to fetch role named {role_name}, skipping."))
+                self.stderr.write(self.style.ERROR(f"Row {i}: unable to fetch role '{role_code}', skipping."))
                 stats["errors"] += 1
                 continue
 
             if dry_run:
-                self.stdout.write(f"Row {i}: would create config for {role_name} on Class of {year} Council")
+                self.stdout.write(f"Row {i}: would create config for '{role_code}' on Class of {year} Council")
                 stats["created"] += 1
                 continue
 
-            live_councils[year].role_configs.add(ClassCouncilRoleConfig(
-                page=live_councils[year],
+            role.placements.add(RolePlacement(
                 role=role,
-                hierarchy_tier=tier,
-                role_display=title,
+                page=live_councils[year],
+                display_name=title,
+                tier=tier,
             ))
-            live_councils[year].save()
+            role.save()
             stats["created"] += 1
 
         prefix = "[DRY RUN] " if dry_run else ""

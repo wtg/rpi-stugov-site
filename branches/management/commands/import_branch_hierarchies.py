@@ -1,5 +1,5 @@
 """
-Management command to create BranchRoleConfig models from a CSV file.
+Management command to create RolePlacement models from a CSV file.
 
 MemberRoleAssignments are global. They are the container that
 stores that a member has a given role. The referenced MemberProfiles
@@ -28,17 +28,18 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 from branches.models import (
-    BranchRoleConfig,
+    RolePlacement,
     BranchPage,
     MemberListingPage,
     Role,
     BRANCH_CHOICES,
+    TierChoices,
 )
 
 REQUIRED_COLUMNS = {"branch", "role", "tier"}
 
 class Command(BaseCommand):
-    help = "Import BranchRoleConfig models from a CSV file."
+    help = "Import RolePlacement models from a CSV file."
 
     def add_arguments(self, parser):
         parser.add_argument("csv_file", type=str, help="Path to the CSV file to import.")
@@ -50,8 +51,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Remove all existing BranchRoleConfigs before importing. "
-                "If branches are specified, only the BranchRoleConfigs for that branch will be removed."
+            help="Remove all existing RolePlacements before importing. "
+                "If branches are specified, only the RolePlacements for that branch will be removed."
         )
         parser.add_argument(
             "--branch",
@@ -108,9 +109,9 @@ class Command(BaseCommand):
             )
 
         if clear and not dry_run:
-            count = BranchRoleConfig.objects.filter(page__in=listing_pages.values()).delete()[0]
+            count = RolePlacement.objects.filter(page__in=listing_pages.values()).delete()[0]
             self.stdout.write(
-                self.style.WARNING(f"Cleared {count} existing role configs.")
+                self.style.WARNING(f"Cleared {count} existing role placements.")
             )
 
         stats = {"created": 0, "skipped": 0, "errors": 0}
@@ -118,7 +119,7 @@ class Command(BaseCommand):
         for i, row in enumerate(rows, start=2):  # row 1 is the header
             row = {k: (v or "").strip() for k, v in row.items()}
             branch_id = row.get("branch", "")
-            role_name = row.get("role", "")
+            role_code = row.get("role", "")
             tier_str = row.get("tier", "")
             title = row.get("title", "")
 
@@ -134,7 +135,7 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR(f"Row {i}: no member listing page for branch {branch_id}, skipping."))
                 stats["errors"] += 1
                 continue
-            if not role_name:
+            if not role_code:
                 self.stderr.write(self.style.ERROR(f"Row {i}: missing role, skipping."))
                 stats["errors"] += 1
                 continue
@@ -145,36 +146,36 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR(f"Row {i}: invalid tier {tier}, skipping."))
                 stats["errors"] += 1
                 continue
-            if tier not in [c[0] for c in BranchRoleConfig._meta.get_field('hierarchy_tier').choices]:
+            if tier not in TierChoices:
                 self.stderr.write(self.style.ERROR(f"Row {i}: invalid tier {tier}, skipping."))
                 stats["errors"] += 1
                 continue
 
             try:
-                role = Role.objects.get(name=role_name)
+                role = Role.objects.get(role_code=role_code)
             except Role.DoesNotExist:
-                self.stderr.write(self.style.ERROR(f"Row {i}: unable to fetch role named {role_name}, skipping."))
+                self.stderr.write(self.style.ERROR(f"Row {i}: unable to fetch role '{role_code}', skipping."))
                 stats["errors"] += 1
                 continue
 
             if dry_run:
-                self.stdout.write(f"Row {i}: would create config for {role_name} on {branch}")
+                self.stdout.write(f"Row {i}: would create placement for '{role_code}' on {branch}")
                 stats["created"] += 1
                 continue
 
-            listing_pages[branch_id].role_configs.add(BranchRoleConfig(
-                page=listing_pages[branch_id],
+            role.placements.add(RolePlacement(
                 role=role,
-                hierarchy_tier=tier,
-                role_display=title,
+                page=listing_pages[branch_id],
+                tier=tier,
+                display_name=title,
             ))
-            listing_pages[branch_id].save()
+            role.save()
             stats["created"] += 1
 
         prefix = "[DRY RUN] " if dry_run else ""
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"{prefix}Branch hierarchy import complete:"))
-        self.stdout.write(f"  Role configs created:   {stats['created']}")
+        self.stdout.write(f"  Role placements created:   {stats['created']}")
         if stats["skipped"]:
             self.stdout.write(self.style.WARNING(f"  Skipped:                {stats['skipped']}"))
         if stats["errors"]:

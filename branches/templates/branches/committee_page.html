@@ -49,50 +49,31 @@
     </div>
     {% endif %}
 
-    {# ---- Committee Members ---- #}
+    {# ---- Committee Chir ---- #}
     {% with hierarchy=page.get_tiered_placements %}
     {% if hierarchy %}
-        {% for tier in hierarchy %}
+        {% with tier=hierarchy[0] %}
+        {% if tier %}
         <section class="mb-14">
             {# Tier heading — centered, with a short accent underline #}
             <div class="text-center mb-8">
-                <h2 class="text-2xl font-bold text-gray-900 inline-block">{{ tier.tier_name }}</h2>
+                <h2 class="text-2xl font-bold text-gray-900 inline-block">Committee Chair</h2>
                 <div class="w-16 h-0.5 bg-rpi-red mx-auto mt-2"></div>
             </div>
 
-            {% if tier.tier_id == 0 %}
-                {# Presiding officer — featured card, centered #}
-                <div class="flex flex-wrap justify-center gap-8 max-w-3xl mx-auto">
-                    {% for placement in tier.placements %}
-                        <div class="w-full sm:w-[420px]">
-                            {% include "includes/member_card.html" with member=placement.member roles=placement.roles featured=True %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% elif tier.tier_id == page.vacancies_tier_id %}
-                {# Vacancies #}
-                <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
-                    {% for vacancy in tier.vacancies %}
-                        <div class="w-48 sm:w-54 md:w-60">
-                            {% include "includes/vacancy_card.html" with positions=vacancy.positions role=vacancy.role %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                {# Compact grid — flex-wrap keeps partial rows centered.   #}
-                {# Fixed card widths let rows wrap naturally at any count. #}
-                <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
-                    {% for placement in tier.placements %}
-                        <div class="w-36 sm:w-40 md:w-44">
-                            {% include "includes/member_card.html" with member=placement.member roles=placement.roles featured=False %}
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            {# Presiding officer — featured card, centered #}
+            <div class="flex flex-wrap justify-center gap-8 max-w-3xl mx-auto">
+                {% for placement in tier.placements %}
+                    <div class="w-full sm:w-[420px]">
+                        {% include "includes/member_card.html" with member=placement.member roles=placement.roles featured=True %}
+                    </div>
+                {% endfor %}
+            </div>
         </section>
-        {% endfor %}
+        {% endif %}
+        {% endwith %}
     {% else %}
-        <p class="text-gray-500 text-center">No members listed yet.</p>
+        <p class="text-gray-500 text-center">No committee chair listed yet.</p>
     {% endif %}
     {% endwith %}
 </div>

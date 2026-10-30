@@ -53,9 +53,9 @@
                 </div>
             {% elif tier.tier_id == page.vacancies_tier_id %}
                 {# Vacancies #}
-                <div class="flex flex-wrap justify-center items-stretch gap-x-6 gap-y-10 sm:gap-x-8">
+                <div class="flex flex-wrap justify-center gap-x-6 gap-y-10 sm:gap-x-8">
                     {% for vacancy in tier.vacancies %}
-                        <div class="w-48 sm:w-54 md:w-60">
+                        <div class="w-48 sm:w-54 md:w-60 grid">
                             {% include "includes/vacancy_card.html" with positions=vacancy.positions role=vacancy.role %}
                         </div>
                     {% endfor %}
