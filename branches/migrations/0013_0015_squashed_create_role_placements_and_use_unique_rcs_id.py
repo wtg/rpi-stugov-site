@@ -9,13 +9,6 @@ import modelcluster.fields
 from django.db import migrations, models
 
 
-# Functions from the following migrations need manual copying.
-# Move them and any dependencies into this file, then update the
-# RunPython operations to refer to the local versions:
-# branches.migrations.0013_remove_branchmemberrole_placement_and_more
-# branches.migrations.0014_make_member_profile_rcs_id_unique_and_more
-# branches.migrations.0015_alter_committeepage_options_roleplacement_and_more
-
 def create_branch_placements_and_transfer_rcs_id(apps, schema_editor):
     Role = apps.get_model('branches', 'Role')
     MemberRoleAssignment = apps.get_model('branches', 'MemberRoleAssignment')
