@@ -7,8 +7,6 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    replaces = [('rep_finder', '0001_initial'), ('rep_finder', '0002_remove_repsformpage_page_ptr_delete_repsformfield_and_more'), ('rep_finder', '0003_initial'), ('rep_finder', '0004_repsformpage_intro_repsformpage_thank_you_text')]
-
     dependencies = [
         ('wagtailcore', '0097_baselogentry_uuid_action_timestamp_indexes'),
     ]
