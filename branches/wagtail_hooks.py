@@ -6,10 +6,8 @@ from .models import MemberRoleAssignment
 class MemberRoleAssignmentViewSet(SnippetViewSet):
     model = MemberRoleAssignment
     icon = "link"
-    list_display = (
-        "member",
-        "role",
-    )
+    list_display = ["member", "role"]
+    list_filter = ["member", "role"]
 
 
 register_snippet(MemberRoleAssignmentViewSet)

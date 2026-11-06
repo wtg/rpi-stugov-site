@@ -47,7 +47,7 @@ class RepsForm(forms.Form):
         return [
             {
                 "member": member,
-                "roles": [assignment.role.get_display_name() for assignment in member.assignments.all() if assignment.role.constituency==chosen_constituency]
+                "roles": [assignment.role.name for assignment in member.assignments.all() if assignment.role.constituency==chosen_constituency]
             } for member in member_profile_list
         ]
 
@@ -68,10 +68,9 @@ class RepsForm(forms.Form):
         return [
             {
                 "member": member,
-                "roles": [assignment.role.get_display_name() for assignment in member.assignments.all() if assignment.role.constituency==chosen_fsl_status]
+                "roles": [assignment.role.name for assignment in member.assignments.all() if assignment.role.constituency==chosen_fsl_status]
             } for member in member_profile_list
         ]
-
     
 
 class RepsFormPage(Page):

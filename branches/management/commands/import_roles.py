@@ -10,9 +10,10 @@ Usage:
     python manage.py import_roles roles.csv --clear
 
 CSV format (header row required):
-    name,positions,constituency
+    name,role_code,positions,constituency
 
   - name: displayed role text, e.g. "Class of 2027 Representative"
+  - role_code: unique identifier for this role
   - positions: number of positions this role can have
     (leave empty for no vacancies to be displayed)
   - constituency: a graduating year, "graduate", an FSL association
@@ -32,7 +33,7 @@ from branches.models import (
 )
 
 
-REQUIRED_COLUMNS = {"name"}
+REQUIRED_COLUMNS = {"name", "role_code"}
 
 
 class Command(BaseCommand):
@@ -86,11 +87,16 @@ class Command(BaseCommand):
         for i, row in enumerate(rows, start=2):  # row 1 is the header
             row = {k: (v or "").strip() for k, v in row.items()}
             name = row.get("name", "")
+            role_code = row.get("role_code", "")
             positions_str = row.get("positions", "")
             constituency = row.get("constituency", "none")
 
             if not name:
                 self.stderr.write(self.style.ERROR(f"Row {i}: missing name, skipping."))
+                stats["errors"] += 1
+                continue
+            if not role_code:
+                self.stderr.write(self.style.ERROR(f"Row {i}: missing role code, skipping."))
                 stats["errors"] += 1
                 continue
             if constituency not in valid_constituencies:
@@ -113,14 +119,15 @@ class Command(BaseCommand):
             if dry_run:
                 exists = Role.objects.filter(name=name).exists()
                 action = "update" if exists else "create"
-                self.stdout.write(f"Row {i}: would {action} role '{name}'")
+                self.stdout.write(f"Row {i}: would {action} role '{role_code} ({name})'")
                 stats["updated" if exists else "created"] += 1
                 continue
 
             _, created = Role.objects.update_or_create(
-                name=name,
+                role_code=role_code,
                 defaults={
                     "name": name,
+                    "role_code": role_code,
                     "positions": positions,
                     "constituency": constituency,
                 },
