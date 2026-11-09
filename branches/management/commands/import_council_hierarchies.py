@@ -108,7 +108,7 @@ class Command(BaseCommand):
         if clear and not dry_run:
             count = RolePlacement.objects.filter(page__in=[live_councils[c] for c in classes]).delete()[0]
             self.stdout.write(
-                self.style.WARNING(f"Cleared {count} existing role configs.")
+                self.style.WARNING(f"Cleared {count} existing role placements.")
             )
 
         stats = {"created": 0, "skipped": 0, "errors": 0}
@@ -174,7 +174,7 @@ class Command(BaseCommand):
         prefix = "[DRY RUN] " if dry_run else ""
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(f"{prefix}Class council hierarchy import complete:"))
-        self.stdout.write(f"  Role configs created:   {stats['created']}")
+        self.stdout.write(f"  Role placements created:   {stats['created']}")
         if stats["skipped"]:
             self.stdout.write(self.style.WARNING(f"  Skipped:                {stats['skipped']}"))
         if stats["errors"]:

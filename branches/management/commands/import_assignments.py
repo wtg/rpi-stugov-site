@@ -83,13 +83,13 @@ class Command(BaseCommand):
         for i, row in enumerate(rows, start=2):  # row 1 is the header
             row = {k: (v or "").strip() for k, v in row.items()}
             rcs_id = row.get("rcs_id", "")
-            role_name = row.get("role", "")
+            role_code = row.get("role", "")
 
             if not rcs_id:
                 self.stderr.write(self.style.ERROR(f"Row {i}: missing RCS ID, skipping."))
                 stats["errors"] += 1
                 continue
-            if not role_name:
+            if not role_code:
                 self.stderr.write(self.style.ERROR(f"Row {i}: missing role, skipping."))
                 stats["errors"] += 1
                 continue
@@ -101,9 +101,9 @@ class Command(BaseCommand):
                 stats["errors"] += 1
                 continue
             try:
-                role = Role.objects.get(name=role_name)
+                role = Role.objects.get(role_code=role_code)
             except Role.DoesNotExist:
-                self.stderr.write(self.style.ERROR(f"Row {i}: role named {role_name} not found, skipping."))
+                self.stderr.write(self.style.ERROR(f"Row {i}: role '{role_code}' not found, skipping."))
                 stats["errors"] += 1
                 continue
 
