@@ -80,7 +80,7 @@ class Command(BaseCommand):
         if clear and not dry_run:
             count = MemberProfile.objects.all().delete()[0]
             self.stdout.write(
-                self.style.WARNING(f"Cleared {count} existing placements.")
+                self.style.WARNING(f"Cleared {count} existing members.")
             )
 
         # -- Process rows --
