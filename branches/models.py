@@ -24,6 +24,7 @@ from collections import defaultdict
 from datetime import date
 
 from django.apps import apps
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import models
 
 from modelcluster.fields import ParentalKey
@@ -644,7 +645,69 @@ class CommitteePage(Page, MembershipDisplay):
     ]
 
     parent_page_types = ["branches.CommitteeIndexPage"]
+    subpage_types = ["branches.CommitteeReportPage"]
+
+    def get_context(self, request, *args, **kwargs):
+        """
+        Paginate report pages into the template context.
+
+        Uses Django's built-in paginator to paginate reports, sorted
+        by published date.
+        """
+        context = super().get_context(request, *args, **kwargs)
+        all_reports = self.get_children().live().order_by("-first_published_at")
+
+        # Paginate reports to 25 per page
+        paginator = Paginator(all_reports, 25)
+        page = request.GET.get('page')
+
+        # Try to get page specified in request
+        try:
+            reports = paginator.page(page)
+        except PageNotAnInteger:
+            reports = paginator.page(1)
+        except EmptyPage:
+            reports = paginator.page(paginator.num_pages)
+
+        context["reports"] = reports
+        return context
+
+
+class CommitteeReportPage(Page):
+    """
+    A committee report page with flexible StreamField content.
+
+    Used by committee chairs to publish their recent work or
+    collected data.
+
+    StreamField lets editors build these pages from structured blocks
+    rather than dumping everything into a single rich text editor.
+    The subtitle field provides an optional secondary heading.
+    """
+
+    subtitle = models.CharField(max_length=255, blank=True)
+    body = StreamField(
+        STANDARD_STREAMFIELD_BLOCKS,
+        blank=True,
+        use_json_field=True,
+    )
+    last_bumped = models.DateTimeField(null=True, editable=False)
+
+    content_panels = Page.content_panels + [
+        FieldPanel("subtitle"),
+        FieldPanel("body"),
+    ]
+
+    # Can live under the homepage OR under a branch page, giving it
+    # maximum flexibility for placement in the page tree.
+    parent_page_types = ["branches.CommitteePage"]
     subpage_types = []
+
+    class Meta:
+        verbose_name = "Committee Report Page"
+        permissions = [
+            ("ignore_bump_cooldown", "Ignore bump cooldown"),
+        ]
 
 
 # ===========================================================================

@@ -131,7 +131,8 @@ class HomePage(Page):
 
     def get_context(self, request, *args, **kwargs):
         """
-        Add upcoming events to the homepage template context.
+        Add upcoming events and committee reports to the homepage
+        template context.
 
         These imports are inside the method (not at module top) to avoid
         circular imports: home.models would import events/branches models,
@@ -142,7 +143,7 @@ class HomePage(Page):
         context = super().get_context(request, *args, **kwargs)
 
         from events.models import EventPage
-        from branches.models import BranchPage
+        from branches.models import BranchPage, CommitteeReportPage
 
         from django.db.models import Q
         from django.utils import timezone
@@ -165,6 +166,14 @@ class HomePage(Page):
             BranchPage.objects.live()
             .order_by("path")
         )
+
+        # Add last 5 report pages, sorted by last bump time, to context
+        pages = CommitteeReportPage.objects.live().public().filter(last_bumped__isnull=False).order_by("-last_bumped")[:5]
+        context["reports"] = [{
+            "page": page,
+            "committee": page.get_parent(),
+        } for page in pages]
+        
         return context
 
     class Meta:
