@@ -29,7 +29,7 @@ npm install
 
 # Apply migrations and start servers (two terminals)
 python manage.py migrate
-python manage.py seed_db # seed database with placeholder data
+python manage.py seed_db     # seed database with placeholder data
 python manage.py runserver   # terminal 1
 npm run dev                  # terminal 2 — watches templates and recompiles tailwind.css
 ```
