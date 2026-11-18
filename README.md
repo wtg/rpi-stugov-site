@@ -7,9 +7,21 @@ Wagtail 7.3 CMS on Django 6.0.
 **Prerequisites:** Python 3.12, Node 20
 
 ```bash
-# Python environment
+# Create Python environment
 python -m venv env
+```
+If you are using MacOS or Linux:
+```bash
+# Activate environment (MacOS / Linux)
 source env/bin/activate
+```
+If you are using Windows:
+```powershell
+# Activate environment (Windows)
+env\Scripts\activate
+```
+```bash
+# Install Python dependencies
 pip install -r requirements.txt
 
 # Node dependencies (for Tailwind)
@@ -17,9 +29,12 @@ npm install
 
 # Apply migrations and start servers (two terminals)
 python manage.py migrate
+python manage.py seed_db # seed database with placeholder data
 python manage.py runserver   # terminal 1
 npm run dev                  # terminal 2 — watches templates and recompiles tailwind.css
 ```
+
+To start the website again, perform the last two commands above in separate terminals.
 
 The dev settings module (`stugov.settings.dev`) is the default — `manage.py` selects it automatically. `DEBUG=True`, `ALLOWED_HOSTS=["*"]`, and a random `SECRET_KEY` is generated on each startup if none is set in the environment.
 
