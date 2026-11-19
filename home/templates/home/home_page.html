@@ -8,7 +8,7 @@
 {#   4. Upcoming events sidebar                                       #}
 {#                                                                     #}
 {# The 'page' variable is the HomePage instance. The 'upcoming_events'#}
-{# variable comes from HomePage.get_context().                        #}
+{# and 'reports' variables come from HomePage.get_context().          #}
 {# ================================================================== #}
 
 {% extends "base.html" %}
@@ -70,7 +70,7 @@
                     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/10 blur-[120px] rounded-full opacity-30"></div>
                     {% else %}
                     {# Placeholder with more presence #}
-                    <div class="relative z-10 w-full aspect-[16/10] bg-gradient-to-br from-rpi-red to-stugov-dark rounded-xl flex items-center justify-center border-4 border-white/10 shadow-2xl">
+                    <div class="relative z-10 w-full aspect-[16/10] bg-gradient-to-br from-rpi-red to-stugov-dark bg-clip-content rounded-xl flex items-center justify-center border-4 border-white/10 shadow-2xl">
                         <span class="text-7xl opacity-20 font-black tracking-tighter">STUDENT GOV</span>
                     </div>
                     {% endif %}
@@ -129,8 +129,42 @@
     <section class="max-w-7xl mx-auto px-6 sm:px-7 lg:px-8 py-12">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            {# Left column: Upcoming Events (2/3 width) #}
+            {# Left column: Committee Reports and Upcoming Events (2/3 width) #}
             <div class="lg:col-span-2">
+                <section class="max-w-7xl mx-auto pb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Efforts</h2>
+                    {% if reports %}
+                    <div class="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="w-full whitespace-nowrap px-4 py-1">Report</th>
+                                    <th class="whitespace-nowrap px-4 py-1">Committee</th>
+                                    <th class="whitespace-nowrap px-4 py-1">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                <tr>
+                                    <td class="whitespace-nowrap px-4 py-1">
+                                        <a href="{% pageurl report.page %}" class="hover:text-rpi-red-dark">{{ report.page.title }} &rarr;</a>
+                                    </td>
+                                    <td class="whitespace-nowrap px-4 py-1">
+                                        <a href="{% pageurl report.committee %}" class="hover:text-rpi-red-dark text-gray-500">{{ report.committee.title }}</a>
+                                    </td>
+                                    <td class="whitespace-nowrap px-4 py-1">
+                                        <p class="text-gray-500">{{ report.page.first_published_at|date:"m/d/Y" }}</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500">No reports have been published. Check back soon.</p>
+                    {% endif %}
+                </section>
+
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Upcoming Events</h2>
                 {% if upcoming_events %}
                 <div class="space-y-4">
