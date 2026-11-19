@@ -19,7 +19,7 @@
 {% block content %}
     {# ---- Hero Section ---- #}
     <section class="relative bg-stugov-dark text-white py-12 md:py-16 overflow-hidden">
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="relative max-w-7xl mx-auto px-5 sm:px-7 lg:px-8">
             <div class="flex flex-col lg:flex-row items-center justify-between gap-10">
                 
                 {# Left Content: Title, Subtitle, and Buttons #}
@@ -35,10 +35,10 @@
                     
                     {# Buttons (formerly Quick Links) moved here #}
                     {% if page.quick_links.all %}
-                    <div class="flex flex-wrap gap-3 mt-6">
+                    <div class="flex flex-wrap gap-3 md:gap-4 mt-6 justify-center md:justify-start">
                         {% for link in page.quick_links.all %}
                         <a href="{{ link.url }}"
-                           class="inline-flex items-center justify-center {% if forloop.first %}bg-rpi-red text-white hover:bg-rpi-red-dark{% else %}bg-white text-stugov-dark hover:bg-gray-100{% endif %} px-5 py-2.5 rounded-lg font-bold shadow-lg transition-all hover:-translate-y-1 active:scale-95 border-2 border-transparent hover:border-rpi-red/20 text-sm md:text-base">
+                           class="inline-flex items-center justify-center {% if forloop.first %}bg-rpi-red text-white hover:bg-rpi-red-dark{% else %}bg-white text-stugov-dark hover:bg-gray-100{% endif %} px-1 md:px-4 py-2.5 rounded-lg font-bold shadow-lg transition-all hover:-translate-y-1 active:scale-95 border-2 border-transparent hover:border-rpi-red/20 text-xs md:text-base">
                             {{ link.link_text }}
                         </a>
                         {% endfor %}
@@ -89,7 +89,7 @@
     {# StuGov structure right on the homepage.                            #}
     {# branch_pages is provided by get_context() in the model.            #}
     {% if branch_pages %}
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <section class="max-w-7xl mx-auto px-6 sm:px-7 lg:px-8 py-12">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Your Student Government</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {% for branch in branch_pages %}
@@ -126,7 +126,7 @@
     {# ---- Events + Sidebar ---- #}
     {# Two-column layout: upcoming events list on the left, contact/links #}
     {# on the right. Inspired by valitsus.ee's news + sidebar pattern.    #}
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <section class="max-w-7xl mx-auto px-6 sm:px-7 lg:px-8 py-12">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {# Left column: Upcoming Events (2/3 width) #}
